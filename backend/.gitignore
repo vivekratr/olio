@@ -7,3 +7,11 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/src/generated/prisma
+.env
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
