@@ -11,3 +11,30 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Account{
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("accounts")
+}
+
+model User {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId String @map("account_id") @db.Uuid
+
+  email String @db.Citext
+  passwordHash String @map("password_hash")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId],references: [id], onDelete: Cascade)
+
+  @@unique([email])
+  @@index([accountId])
+
+  @@map("users")
+}

@@ -8,6 +8,8 @@
 !.yarn/releases
 !.yarn/versions
 /src/generated/prisma
+
+# Secrets
 .env
 !.env.example
 
