@@ -1,9 +1,5 @@
-import {prisma} from "./prism.js"
+import { prisma } from "./prisma.js";
 
 export abstract class BaseRepository {
-    protected readonly prisma = prisma;
-    
-    protected constructor(
-        protected readonly accountId?: string
-    ) {}
+  protected readonly prisma = prisma;
 }

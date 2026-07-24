@@ -4,6 +4,7 @@ import helmet from "helmet";
 
 import { env } from "./common/config/env.js";
 import { API_PREFIX } from "./common/config/constants.js";
+import { logger } from "./common/logger/logger.js";
 import routes from "./routes/index.js";
 import { errorMiddleware } from "./common/middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./common/middlewares/not-found.middleware.js";
@@ -16,11 +17,8 @@ app.use(express.json());
 app.use(API_PREFIX, routes);
 
 app.use(notFoundMiddleware);
-
 app.use(errorMiddleware);
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(env.port, () => {
-  console.log(`Server running on port ${env.port}`);
+app.listen(env.PORT, () => {
+  logger.info(`Server running on port ${env.PORT}`);
 });

@@ -1,4 +1,4 @@
-import { prisma } from "../../common/database/prism.js"
+import { prisma } from "../../common/database/prisma.js"
 
 export class AuthRepository {
     async findUserByEmail(email: string) {

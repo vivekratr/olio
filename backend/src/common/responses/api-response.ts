@@ -1,25 +1,19 @@
 import type { Response } from "express";
 
-export const successResponse = (
+interface SuccessBody<T> {
+  success: true;
+  message: string;
+  data: T;
+}
+
+export const successResponse = <T>(
   res: Response,
-  data: unknown,
+  data: T,
   message = "Success",
   status = 200,
-) => {
-  return res.status(status).json({
+): Response<SuccessBody<T>> =>
+  res.status(status).json({
     success: true,
     message,
     data,
   });
-};
-
-export const errorResponse = (
-  res: Response,
-  message = "Something went wrong",
-  status = 500,
-) => {
-  return res.status(status).json({
-    success: false,
-    message,
-  });
-};

@@ -1,7 +1,18 @@
-export const logger = {
-  info: (...args: unknown[]) => console.log("[INFO]", ...args),
+import winston from "winston";
+import { env } from "../config/env.js";
 
-  warn: (...args: unknown[]) => console.warn("[WARN]", ...args),
+const { combine, timestamp, printf, colorize } = winston.format;
 
-  error: (...args: unknown[]) => console.error("[ERROR]", ...args),
-};
+const logFormat = printf(({ level, message, timestamp: ts }) => {
+  return `${ts} [${level}]: ${message}`;
+});
+
+export const logger = winston.createLogger({
+  level: env.NODE_ENV === "production" ? "info" : "debug",
+  format: combine(timestamp(), logFormat),
+  transports: [
+    new winston.transports.Console({
+      format: combine(colorize(), logFormat),
+    }),
+  ],
+});
