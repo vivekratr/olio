@@ -1,10 +1,15 @@
-export interface RegisterDto {
-    name: string;
-    email: string;
-    password: string;
+export interface JwtPayload {
+  userId: string;
+  accountId: string;
 }
 
-export interface LoginDto{
-    email: string;
-    password: string;
+export interface AuthenticatedUser {
+  id: string;
+  accountId: string;
+  email: string;
+}
+
+export interface AuthResponse {
+  user: AuthenticatedUser;
+  accessToken: string;
 }
