@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION pgcrypto;
 
 -- CreateTable
 CREATE TABLE "accounts" (
