@@ -1,6 +1,7 @@
 export interface JwtPayload {
   userId: string;
   accountId: string;
+  email: string;
 }
 
 export interface AuthenticatedUser {

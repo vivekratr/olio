@@ -8,8 +8,10 @@ const isJwtPayload = (value: unknown): value is JwtPayload =>
   value !== null &&
   "userId" in value &&
   "accountId" in value &&
+  "email" in value &&
   typeof value.userId === "string" &&
-  typeof value.accountId === "string";
+  typeof value.accountId === "string" &&
+  typeof value.email === "string";
 
 export const generateToken = (payload: JwtPayload): string =>
   jwt.sign(payload, env.JWT_SECRET, {
@@ -24,7 +26,11 @@ export const verifyToken = (token: string): JwtPayload => {
       throw new AppError("Unauthorized", 401);
     }
 
-    return { userId: isUser.userId, accountId: isUser.accountId };
+    return {
+      userId: isUser.userId,
+      accountId: isUser.accountId,
+      email: isUser.email,
+    };
   } catch (error) {
     if (error instanceof AppError) {
       throw error;

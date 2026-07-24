@@ -18,9 +18,7 @@ export class AuthController {
   });
 
   me: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user.id;
-
-
-    successResponse(res, { id: userId }, "Profile retrieved successfully");
+    const user = await this.authService.getCurrentUser(req.user.id);
+    successResponse(res, user, "Authenticated user retrieved successfully");
   });
 }

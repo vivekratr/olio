@@ -3,7 +3,7 @@ import { AppError } from "../../common/errors/app-error.js";
 import { generateToken } from "../../common/utils/jwt.js";
 import type { AuthRepository } from "./auth.repository.js";
 import type { LoginInput, RegisterInput } from "./auth.schema.js";
-import type { AuthResponse } from "./auth.types.js";
+import type { AuthResponse, AuthenticatedUser } from "./auth.types.js";
 
 const BCRYPT_SALT_ROUNDS = 10;
 const INVALID_CREDENTIALS = "Invalid email or password";
@@ -50,6 +50,19 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
+  async getCurrentUser(userId: string): Promise<AuthenticatedUser> {
+    const user = await this.authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    return {
+      id: user.id,
+      accountId: user.accountId,
+      email: user.email,
+    };
+  }
+
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
@@ -68,6 +81,7 @@ export class AuthService {
       accessToken: generateToken({
         userId: user.id,
         accountId: user.accountId,
+        email: user.email,
       }),
     };
   }
