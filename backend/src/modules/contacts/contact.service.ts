@@ -1,9 +1,12 @@
 import { AppError } from "../../common/errors/app-error.js";
 import type { Contact } from "../../generated/prisma/client.js";
 import type { ContactRepository } from "./contact.repository.js";
+import type { ListContactsQuery } from "./contact.schema.js";
 import type {
+  ContactListResponse,
   ContactResponse,
   CreateContactInput,
+  ListContactsOptions,
   UpdateContactInput,
 } from "./contact.types.js";
 
@@ -37,9 +40,29 @@ export class ContactService {
     return this.toContactResponse(contact);
   }
 
-  async listContacts(accountId: string): Promise<ContactResponse[]> {
-    const contacts = await this.contactRepository.list(accountId);
-    return contacts.map((contact) => this.toContactResponse(contact));
+  async listContacts(
+    accountId: string,
+    query: ListContactsQuery,
+  ): Promise<ContactListResponse> {
+    const options = this.buildListOptions(query);
+    const { items, total } = await this.contactRepository.list(
+      accountId,
+      options,
+    );
+
+    const totalPages = total === 0 ? 0 : Math.ceil(total / options.limit);
+
+    return {
+      items: items.map((contact) => this.toContactResponse(contact)),
+      pagination: {
+        page: options.page,
+        limit: options.limit,
+        total,
+        totalPages,
+        hasNextPage: options.page < totalPages,
+        hasPreviousPage: options.page > 1,
+      },
+    };
   }
 
   async updateContact(
@@ -77,6 +100,26 @@ export class ContactService {
     }
 
     return this.toContactResponse(contact);
+  }
+
+  private buildListOptions(query: ListContactsQuery): ListContactsOptions {
+    const search = query.search?.trim();
+    const options: ListContactsOptions = {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+    };
+
+    if (search) {
+      options.search = search;
+      const phoneSearch = this.normalizePhone(search);
+      if (phoneSearch) {
+        options.phoneSearch = phoneSearch;
+      }
+    }
+
+    return options;
   }
 
   private normalizeEmail(email: string): string {

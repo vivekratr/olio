@@ -1,6 +1,10 @@
 import { BaseRepository } from "../../common/database/base.repository.js";
 import type { Contact, Prisma } from "../../generated/prisma/client.js";
-import type { CreateContactInput, UpdateContactInput } from "./contact.types.js";
+import type {
+  CreateContactInput,
+  ListContactsOptions,
+  UpdateContactInput,
+} from "./contact.types.js";
 
 export class ContactRepository extends BaseRepository {
   async create(accountId: string, data: CreateContactInput): Promise<Contact> {
@@ -42,11 +46,42 @@ export class ContactRepository extends BaseRepository {
     });
   }
 
-  async list(accountId: string): Promise<Contact[]> {
-    return this.prisma.contact.findMany({
-      where: { accountId },
-      orderBy: { createdAt: "desc" },
-    });
+  async list(
+    accountId: string,
+    options: ListContactsOptions,
+  ): Promise<{ items: Contact[]; total: number }> {
+    const where: Prisma.ContactWhereInput = { accountId };
+
+    if (options.search) {
+      const or: Prisma.ContactWhereInput[] = [
+        { name: { contains: options.search, mode: "insensitive" } },
+        { email: { contains: options.search, mode: "insensitive" } },
+      ];
+
+      if (options.phoneSearch) {
+        or.push({
+          phone: { contains: options.phoneSearch, mode: "insensitive" },
+        });
+      }
+
+      where.OR = or;
+    }
+
+    const orderBy: Prisma.ContactOrderByWithRelationInput = {
+      [options.sort]: options.order,
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.contact.findMany({
+        where,
+        orderBy,
+        skip: (options.page - 1) * options.limit,
+        take: options.limit,
+      }),
+      this.prisma.contact.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   async update(

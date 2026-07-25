@@ -16,3 +16,24 @@ export interface CreateContactInput {
 }
 
 export type UpdateContactInput = Partial<CreateContactInput>;
+
+export interface ContactListResponse {
+  items: ContactResponse[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+export interface ListContactsOptions {
+  page: number;
+  limit: number;
+  search?: string;
+  phoneSearch?: string;
+  sort: "createdAt" | "name" | "email";
+  order: "asc" | "desc";
+}

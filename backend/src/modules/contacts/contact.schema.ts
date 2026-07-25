@@ -27,3 +27,16 @@ export const updateContactSchema = contactFieldsSchema
       message: "At least one field is required",
     },
   );
+
+const contactSortFields = ["createdAt", "name", "email"] as const;
+const contactSortOrders = ["asc", "desc"] as const;
+
+export const listContactsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().optional(),
+  sort: z.enum(contactSortFields).default("createdAt"),
+  order: z.enum(contactSortOrders).default("desc"),
+});
+
+export type ListContactsQuery = z.infer<typeof listContactsQuerySchema>;
