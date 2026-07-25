@@ -37,3 +37,28 @@ export interface ListContactsOptions {
   sort: "createdAt" | "name" | "email";
   order: "asc" | "desc";
 }
+
+export interface ImportRow {
+  rowNumber: number;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  tags: string[];
+}
+
+export interface ImportRejectedRow extends ImportRow {
+  reason: string;
+}
+
+export interface ImportPlan {
+  readyToImport: ImportRow[];
+  duplicateInDatabase: ImportRejectedRow[];
+  duplicateInCsv: ImportRejectedRow[];
+  invalidRows: ImportRejectedRow[];
+}
+export interface ImportSummary {
+  imported: number;
+  duplicates: ImportRejectedRow[];
+  invalid: ImportRejectedRow[];
+}

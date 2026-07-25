@@ -19,6 +19,25 @@ export class ContactRepository extends BaseRepository {
     });
   }
 
+  async createMany(
+    accountId: string,
+    data: CreateContactInput[],
+  ): Promise<Contact[]> {
+    if (data.length === 0) {
+      return [];
+    }
+
+    return this.prisma.contact.createManyAndReturn({
+      data: data.map((row) => ({
+        accountId,
+        name: row.name ?? "",
+        email: row.email ?? null,
+        phone: row.phone ?? null,
+        customFields: (row.customFields ?? {}) as Prisma.InputJsonValue,
+      })),
+    });
+  }
+
   async findById(
     accountId: string,
     contactId: string,
