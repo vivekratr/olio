@@ -1,6 +1,7 @@
 import { BaseRepository } from "../../common/database/base.repository.js";
 import type { Campaign, Prisma } from "../../generated/prisma/client.js";
 import type {
+  CampaignStatus,
   CreateCampaignInput,
   UpdateCampaignInput,
 } from "./campaign.types.js";
@@ -82,5 +83,30 @@ export class CampaignRepository extends BaseRepository {
     return this.prisma.campaign.delete({
       where: { id: campaignId },
     });
+  }
+
+  async transitionStatus(
+    accountId: string,
+    campaignId: string,
+    fromStatus: CampaignStatus,
+    toStatus: CampaignStatus,
+    scheduledAt?: Date | null,
+  ): Promise<Campaign | null> {
+    const data: Prisma.CampaignUpdateManyMutationInput = { status: toStatus };
+
+    if (scheduledAt !== undefined) {
+      data.scheduledAt = scheduledAt;
+    }
+
+    const result = await this.prisma.campaign.updateMany({
+      where: { id: campaignId, accountId, status: fromStatus },
+      data,
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findById(accountId, campaignId);
   }
 }

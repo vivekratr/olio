@@ -113,6 +113,7 @@ model Campaign {
   bodyHtml String @map("body_html")
   recipientMode String @map("recipient_mode")
   status String @default("draft")
+  scheduledAt DateTime? @map("scheduled_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

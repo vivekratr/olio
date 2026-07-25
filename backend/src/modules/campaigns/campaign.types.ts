@@ -1,3 +1,5 @@
+import type { ContactResponse } from "../contacts/contact.types.js";
+
 export type CampaignStatus =
   | "draft"
   | "scheduled"
@@ -14,6 +16,7 @@ export interface CampaignResponse {
   bodyHtml: string;
   recipientMode: RecipientMode;
   status: CampaignStatus;
+  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,3 +29,31 @@ export interface CreateCampaignInput {
 }
 
 export type UpdateCampaignInput = Partial<CreateCampaignInput>;
+
+export interface PreviewRecipientsInput {
+  audienceId?: string;
+  tagId?: string;
+  pasted?: string[];
+}
+
+export interface RecipientResolutionResult {
+  matched: ContactResponse[];
+  unmatched: string[];
+}
+
+export interface PreviewRecipientsResponse {
+  matched: ContactResponse[];
+  unmatched: string[];
+  totalMatched: number;
+  totalUnmatched: number;
+}
+
+export interface ScheduleCampaignInput {
+  scheduledAt: string;
+}
+
+export interface CampaignTransition {
+  fromStatus: CampaignStatus;
+  toStatus: CampaignStatus;
+  scheduledAt?: Date | null;
+}
