@@ -1,11 +1,14 @@
 import { AppError } from "../../common/errors/app-error.js";
 import type { Campaign } from "../../generated/prisma/client.js";
+import type { CampaignQueue } from "../../infrastructure/queue/campaign.queue.js";
 import { TagService } from "../tags/tag.service.js";
+import { CampaignRecipientRepository } from "./campaign-recipient.repository.js";
 import { CampaignRecipientResolver } from "./campaign-recipient.resolver.js";
 import { CampaignRepository } from "./campaign.repository.js";
 import { CampaignScheduler } from "./campaign.scheduler.js";
 import type {
   CampaignResponse,
+  CampaignStatus,
   PreviewRecipientsInput,
   PreviewRecipientsResponse,
   RecipientMode,
@@ -23,6 +26,8 @@ export class CampaignService {
     private readonly recipientResolver: CampaignRecipientResolver,
     private readonly tagService: TagService,
     private readonly campaignScheduler: CampaignScheduler,
+    private readonly campaignQueue: CampaignQueue,
+    private readonly campaignRecipientRepository: CampaignRecipientRepository,
   ) {}
 
   async previewRecipients(
@@ -57,15 +62,22 @@ export class CampaignService {
       new Date(input.scheduledAt),
     );
 
+    const queueJobId = await this.campaignQueue.enqueueCampaign(
+      { accountId, campaignId },
+      transition.scheduledAt,
+    );
+
     const updated = await this.campaignRepository.transitionStatus(
       accountId,
       campaignId,
       transition.fromStatus,
       transition.toStatus,
       transition.scheduledAt,
+      queueJobId,
     );
 
     if (!updated) {
+      await this.campaignQueue.cancelJob(queueJobId);
       throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
     }
 
@@ -79,19 +91,130 @@ export class CampaignService {
     const campaign = await this.findCampaignOrThrow(accountId, campaignId);
     const transition = this.campaignScheduler.sendNow(campaign);
 
+    const queueJobId = await this.campaignQueue.enqueueCampaign({
+      accountId,
+      campaignId,
+    });
+
     const updated = await this.campaignRepository.transitionStatus(
       accountId,
       campaignId,
       transition.fromStatus,
       transition.toStatus,
       transition.scheduledAt,
+      queueJobId,
     );
 
     if (!updated) {
+      await this.campaignQueue.cancelJob(queueJobId);
       throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
     }
 
     return this.toCampaignResponse(updated);
+  }
+
+  async prepareCampaign(
+    accountId: string,
+    campaignId: string,
+  ): Promise<void> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    const existing = await this.campaignRecipientRepository.findByCampaign(
+      campaignId,
+    );
+
+    if (existing.length > 0) {
+      return;
+    }
+
+    const result = await this.resolveRecipients(
+      accountId,
+      campaign.recipientMode as RecipientMode,
+      this.toRecipientInput(campaign),
+    );
+
+    await this.campaignRecipientRepository.createMany(
+      campaignId,
+      result.matched.map((contact) => contact.id),
+    );
+  }
+
+  async markSending(accountId: string, campaignId: string): Promise<void> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    const status = campaign.status as CampaignStatus;
+
+    if (status === "sending" || status === "sent") {
+      return;
+    }
+
+    if (status !== "scheduled") {
+      throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+
+    const updated = await this.campaignRepository.transitionStatus(
+      accountId,
+      campaignId,
+      status,
+      "sending",
+    );
+
+    if (!updated) {
+      const current = await this.campaignRepository.findById(
+        accountId,
+        campaignId,
+      );
+      if (current?.status === "sending" || current?.status === "sent") {
+        return;
+      }
+
+      throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+  }
+
+  async markSent(accountId: string, campaignId: string): Promise<void> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+
+    if (campaign.status === "sent") {
+      return;
+    }
+
+    const updated = await this.campaignRepository.transitionStatus(
+      accountId,
+      campaignId,
+      "sending",
+      "sent",
+    );
+
+    if (!updated) {
+      const current = await this.campaignRepository.findById(
+        accountId,
+        campaignId,
+      );
+      if (current?.status === "sent") {
+        return;
+      }
+
+      throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+  }
+
+  async markFailed(accountId: string, campaignId: string): Promise<void> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    const status = campaign.status as CampaignStatus;
+
+    if (status === "sent" || status === "failed") {
+      return;
+    }
+
+    if (status !== "scheduled" && status !== "sending") {
+      return;
+    }
+
+    await this.campaignRepository.transitionStatus(
+      accountId,
+      campaignId,
+      status,
+      "failed",
+    );
   }
 
   private async findCampaignOrThrow(
@@ -148,6 +271,22 @@ export class CampaignService {
         throw new AppError(`Unknown recipient mode: ${exhaustiveCheck}`, 400);
       }
     }
+  }
+
+  private toRecipientInput(campaign: Campaign): PreviewRecipientsInput {
+    const input: PreviewRecipientsInput = {};
+
+    if (campaign.audienceId) {
+      input.audienceId = campaign.audienceId;
+    }
+    if (campaign.tagId) {
+      input.tagId = campaign.tagId;
+    }
+    if (Array.isArray(campaign.pastedRecipients)) {
+      input.pasted = campaign.pastedRecipients as string[];
+    }
+
+    return input;
   }
 
   private toCampaignResponse(campaign: Campaign): CampaignResponse {

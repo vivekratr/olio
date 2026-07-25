@@ -9,6 +9,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(1),
   JWT_EXPIRES_IN: z.string().min(1).default("7d"),
+  REDIS_URL: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

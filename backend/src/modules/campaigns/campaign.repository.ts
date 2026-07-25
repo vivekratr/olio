@@ -91,11 +91,16 @@ export class CampaignRepository extends BaseRepository {
     fromStatus: CampaignStatus,
     toStatus: CampaignStatus,
     scheduledAt?: Date | null,
+    queueJobId?: string | null,
   ): Promise<Campaign | null> {
     const data: Prisma.CampaignUpdateManyMutationInput = { status: toStatus };
 
     if (scheduledAt !== undefined) {
       data.scheduledAt = scheduledAt;
+    }
+
+    if (queueJobId !== undefined) {
+      data.queueJobId = queueJobId;
     }
 
     const result = await this.prisma.campaign.updateMany({

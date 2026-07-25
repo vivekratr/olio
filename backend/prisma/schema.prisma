@@ -57,6 +57,7 @@ model Contact {
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   contactTags ContactTag[]
+  campaignRecipients CampaignRecipient[]
 
   @@index([accountId])
   @@index([accountId, email])
@@ -112,14 +113,34 @@ model Campaign {
   subject String
   bodyHtml String @map("body_html")
   recipientMode String @map("recipient_mode")
+  audienceId String? @map("audience_id") @db.Uuid
+  tagId String? @map("tag_id") @db.Uuid
+  pastedRecipients Json? @map("pasted_recipients")
   status String @default("draft")
   scheduledAt DateTime? @map("scheduled_at")
+  queueJobId String? @map("queue_job_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  recipients CampaignRecipient[]
 
   @@index([accountId])
   @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId String @map("campaign_id") @db.Uuid
+  contactId String @map("contact_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId])
+  @@map("campaign_recipients")
 }
