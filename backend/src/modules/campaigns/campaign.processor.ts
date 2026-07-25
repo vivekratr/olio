@@ -13,6 +13,7 @@ export class CampaignProcessor {
     try {
       await this.campaignService.prepareCampaign(accountId, campaignId);
       await this.campaignService.markSending(accountId, campaignId);
+      await this.campaignService.deliverCampaign(accountId, campaignId);
       await this.campaignService.markSent(accountId, campaignId);
     } catch (error) {
       logger.error(`Campaign job failed: ${campaignId}`, { error });

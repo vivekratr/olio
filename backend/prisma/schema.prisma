@@ -134,13 +134,31 @@ model CampaignRecipient {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   campaignId String @map("campaign_id") @db.Uuid
   contactId String @map("contact_id") @db.Uuid
+  status String @default("pending")
+  providerMessageId String? @map("provider_message_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  events CampaignEvent[]
 
   @@unique([campaignId, contactId])
   @@index([campaignId])
+  @@index([providerMessageId])
   @@map("campaign_recipients")
+}
+
+model CampaignEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignRecipientId String @map("campaign_recipient_id") @db.Uuid
+  providerEventId String @unique @map("provider_event_id")
+  eventType String @map("event_type")
+  rawPayload Json @map("raw_payload")
+  receivedAt DateTime @default(now()) @map("received_at")
+
+  recipient CampaignRecipient @relation(fields: [campaignRecipientId], references: [id], onDelete: Cascade)
+
+  @@index([campaignRecipientId])
+  @@map("campaign_events")
 }

@@ -8,6 +8,7 @@ import { API_PREFIX } from "./common/config/constants.js";
 import { logger } from "./common/logger/logger.js";
 import { CampaignQueue } from "./infrastructure/queue/campaign.queue.js";
 import { startCampaignWorker } from "./infrastructure/queue/worker.js";
+import { BrevoProvider } from "./infrastructure/email/brevo.provider.js";
 import { AudienceRepository } from "./modules/audiences/audience.repository.js";
 import { AudienceService } from "./modules/audiences/audience.service.js";
 import { CampaignProcessor } from "./modules/campaigns/campaign.processor.js";
@@ -38,6 +39,7 @@ app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
 const contactRepository = new ContactRepository();
+const emailProvider = new BrevoProvider();
 const campaignService = new CampaignService(
   new CampaignRepository(),
   new CampaignRecipientResolver(
@@ -52,6 +54,7 @@ const campaignService = new CampaignService(
   new CampaignScheduler(),
   new CampaignQueue(),
   new CampaignRecipientRepository(),
+  emailProvider,
 );
 const campaignProcessor = new CampaignProcessor(campaignService);
 

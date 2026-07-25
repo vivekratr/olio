@@ -1,5 +1,7 @@
 import { AppError } from "../../common/errors/app-error.js";
+import { logger } from "../../common/logger/logger.js";
 import type { Campaign } from "../../generated/prisma/client.js";
+import type { EmailProvider } from "../../infrastructure/email/email.provider.js";
 import type { CampaignQueue } from "../../infrastructure/queue/campaign.queue.js";
 import { TagService } from "../tags/tag.service.js";
 import { CampaignRecipientRepository } from "./campaign-recipient.repository.js";
@@ -28,6 +30,7 @@ export class CampaignService {
     private readonly campaignScheduler: CampaignScheduler,
     private readonly campaignQueue: CampaignQueue,
     private readonly campaignRecipientRepository: CampaignRecipientRepository,
+    private readonly emailProvider: EmailProvider,
   ) {}
 
   async previewRecipients(
@@ -167,6 +170,38 @@ export class CampaignService {
       }
 
       throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+  }
+
+  async deliverCampaign(accountId: string, campaignId: string): Promise<void> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    const recipients =
+      await this.campaignRecipientRepository.findPendingByCampaign(campaignId);
+
+    for (const recipient of recipients) {
+      try {
+        const email = recipient.contact.email;
+        if (!email) {
+          await this.campaignRecipientRepository.markFailed(recipient.id);
+          continue;
+        }
+
+        const result = await this.emailProvider.send({
+          to: email,
+          subject: campaign.subject,
+          html: campaign.bodyHtml,
+        });
+
+        await this.campaignRecipientRepository.markSent(
+          recipient.id,
+          result.providerMessageId,
+        );
+      } catch (error) {
+        logger.error(`Campaign recipient send failed: ${recipient.id}`, {
+          error,
+        });
+        await this.campaignRecipientRepository.markFailed(recipient.id);
+      }
     }
   }
 

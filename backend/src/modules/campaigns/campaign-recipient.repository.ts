@@ -1,5 +1,12 @@
 import { BaseRepository } from "../../common/database/base.repository.js";
-import type { CampaignRecipient } from "../../generated/prisma/client.js";
+import type {
+  CampaignRecipient,
+  Contact,
+} from "../../generated/prisma/client.js";
+
+export type CampaignRecipientWithContact = CampaignRecipient & {
+  contact: Contact;
+};
 
 export class CampaignRecipientRepository extends BaseRepository {
   async createMany(
@@ -19,6 +26,47 @@ export class CampaignRecipientRepository extends BaseRepository {
   async findByCampaign(campaignId: string): Promise<CampaignRecipient[]> {
     return this.prisma.campaignRecipient.findMany({
       where: { campaignId },
+    });
+  }
+
+  async findPendingByCampaign(
+    campaignId: string,
+  ): Promise<CampaignRecipientWithContact[]> {
+    return this.prisma.campaignRecipient.findMany({
+      where: { campaignId, status: "pending" },
+      include: { contact: true },
+    });
+  }
+
+  async markSent(
+    recipientId: string,
+    providerMessageId: string,
+  ): Promise<void> {
+    await this.prisma.campaignRecipient.update({
+      where: { id: recipientId },
+      data: { status: "sent", providerMessageId },
+    });
+  }
+
+  async markFailed(recipientId: string): Promise<void> {
+    await this.prisma.campaignRecipient.update({
+      where: { id: recipientId },
+      data: { status: "failed" },
+    });
+  }
+
+  async findByProviderMessageId(
+    providerMessageId: string,
+  ): Promise<CampaignRecipient | null> {
+    return this.prisma.campaignRecipient.findFirst({
+      where: { providerMessageId },
+    });
+  }
+
+  async updateStatus(recipientId: string, status: string): Promise<void> {
+    await this.prisma.campaignRecipient.update({
+      where: { id: recipientId },
+      data: { status },
     });
   }
 

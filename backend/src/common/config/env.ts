@@ -10,6 +10,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1),
   JWT_EXPIRES_IN: z.string().min(1).default("7d"),
   REDIS_URL: z.string().min(1),
+  BREVO_API_KEY: z.string().min(1),
+  BREVO_SENDER_EMAIL: z.email(),
+  BREVO_SENDER_NAME: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
