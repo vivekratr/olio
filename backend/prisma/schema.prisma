@@ -20,6 +20,7 @@ model Account{
   users User[]
   contacts Contact[]
   tags Tag[]
+  audiences Audience[]
 
   @@map("accounts")
 }
@@ -86,4 +87,19 @@ model ContactTag {
 
   @@id([contactId, tagId])
   @@map("contact_tags")
+}
+
+model Audience {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId String @map("account_id") @db.Uuid
+  name String
+  filter Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("audiences")
 }

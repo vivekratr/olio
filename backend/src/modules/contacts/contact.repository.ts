@@ -148,4 +148,29 @@ export class ContactRepository extends BaseRepository {
       where: { id: contactId },
     });
   }
+
+  async findByAudienceWhere(
+    accountId: string,
+    audienceWhere: Prisma.ContactWhereInput,
+    options?: { limit?: number },
+  ): Promise<Contact[]> {
+    return this.prisma.contact.findMany({
+      where: {
+        AND: [{ accountId }, audienceWhere],
+      },
+      orderBy: { createdAt: "desc" },
+      ...(options?.limit !== undefined ? { take: options.limit } : {}),
+    });
+  }
+
+  async countByAudienceWhere(
+    accountId: string,
+    audienceWhere: Prisma.ContactWhereInput,
+  ): Promise<number> {
+    return this.prisma.contact.count({
+      where: {
+        AND: [{ accountId }, audienceWhere],
+      },
+    });
+  }
 }
