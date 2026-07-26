@@ -59,6 +59,7 @@ export interface ImportPlan {
 }
 export interface ImportSummary {
   imported: number;
+  contactIds: string[];
   duplicates: ImportRejectedRow[];
   invalid: ImportRejectedRow[];
 }

@@ -5,7 +5,7 @@ import { memo, useMemo } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { AnalyticsSkeleton } from "@/components/ui/skeletons/AnalyticsSkeleton";
 import { useCampaignAnalytics } from "@/hooks/useCampaignAnalytics";
 import { useToast } from "@/providers/ToastProvider";
 
@@ -39,24 +39,6 @@ function formatCount(value: number): string {
 
 function formatRate(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
-}
-
-function AnalyticsSkeleton() {
-  return (
-    <div className="space-y-8">
-      <Skeleton className="h-10 w-2/3" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-28 rounded-[24px]" />
-        ))}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton key={index} className="h-28 rounded-[24px]" />
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function LiveBadge() {
@@ -172,7 +154,12 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
       <PageLayout eyebrow="Campaign analytics">
         <EmptyState
           title={data.campaign.name}
-          description="No sends yet. Analytics will appear here once the campaign starts sending."
+          description="This campaign hasn't sent yet. Metrics will appear here once delivery starts."
+          steps={[
+            "Open the campaign editor and confirm recipients are set",
+            "Click Send now or schedule a send time",
+            "Return here to watch sent, delivered, and opened counts update live",
+          ]}
         />
       </PageLayout>
     );

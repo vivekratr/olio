@@ -1,5 +1,5 @@
 import { GuestRoute } from "@/hooks/useAuth";
-import { RegisterPage } from "@/pages/RegisterPage";
+import { RegisterPage } from "@/views/RegisterPage";
 
 export default function RegisterRoute() {
   return (

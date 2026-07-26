@@ -1,4 +1,4 @@
-import { AudiencesPage } from "@/pages/AudiencesPage";
+import { AudiencesPage } from "@/views/AudiencesPage";
 
 export default function AudiencesRoute() {
   return <AudiencesPage />;

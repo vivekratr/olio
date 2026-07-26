@@ -143,11 +143,11 @@ export class ContactService {
   async executeImport(
     accountId: string,
     importPlan: ImportPlan,
-  ): Promise<number> {
+  ): Promise<string[]> {
     const { readyToImport } = importPlan;
 
     if (readyToImport.length === 0) {
-      return 0;
+      return [];
     }
 
     return runTransaction(async (tx) => {
@@ -157,7 +157,7 @@ export class ContactService {
         readyToImport.map((row) => this.toImportContactInput(row)),
       );
 
-      return contacts.length;
+      return contacts.map((contact) => contact.id);
     });
   }
 

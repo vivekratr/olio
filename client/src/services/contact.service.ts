@@ -3,6 +3,7 @@ import type {
   Contact,
   ContactListResponse,
   CreateContactInput,
+  ImportContactsOptions,
   ImportSummary,
   ListContactsParams,
   UpdateContactInput,
@@ -52,6 +53,12 @@ export function deleteContact(id: string): Promise<Contact> {
   return apiDelete<Contact>(`/contacts/${id}`);
 }
 
-export function importContactsCsv(file: File): Promise<ImportSummary> {
-  return apiUpload<ImportSummary>("/contacts/import", file);
+export function importContactsCsv({
+  file,
+  tagIds = [],
+}: ImportContactsOptions): Promise<ImportSummary> {
+  const fields =
+    tagIds.length > 0 ? { tagIds: JSON.stringify(tagIds) } : undefined;
+
+  return apiUpload<ImportSummary>("/contacts/import", file, fields);
 }

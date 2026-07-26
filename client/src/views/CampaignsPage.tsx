@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { TableSkeleton } from "@/components/ui/skeletons/TableSkeleton";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { formatScheduledAt } from "@/lib/campaign-fields";
 import { useToast } from "@/providers/ToastProvider";
@@ -52,14 +52,8 @@ function StatusBadge({ status }: { status: CampaignStatus }) {
   );
 }
 
-function TableSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} className="h-16 rounded-[16px]" />
-      ))}
-    </div>
-  );
+function TableSkeletonLoader() {
+  return <TableSkeleton rows={5} columns={5} label="Loading campaigns" />;
 }
 
 function CampaignRow({
@@ -171,16 +165,22 @@ export function CampaignsPage() {
           retryLoading={isFetching}
         />
       ) : loading ? (
-        <TableSkeleton />
+        <TableSkeletonLoader />
       ) : campaigns.length === 0 ? (
         <EmptyState
           title="No campaigns yet"
-          description="Draft an email, pick an audience, and send or schedule your first campaign."
+          description="Campaigns are the emails you send to your contacts."
+          steps={[
+            "Write a subject line and email body",
+            "Choose recipients from an audience, tag, or pasted emails",
+            "Send immediately or schedule for later",
+          ]}
           action={
             <Button onClick={() => router.push("/campaigns/new")}>
               Create campaign
             </Button>
           }
+          hint="Add contacts and optionally build an audience first."
         />
       ) : (
         <div className="overflow-hidden rounded-[24px] border border-[#d0d4e4] bg-white shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]">

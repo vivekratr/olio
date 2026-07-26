@@ -43,6 +43,7 @@ function applyAuthSuccess(
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const hasToken = Boolean(getAccessToken());
 
   const { data: user, isPending, isError } = useQuery({
@@ -85,14 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearAccessToken();
+    queryClient.setQueryData(AUTH_USER_KEY, null);
     queryClient.removeQueries({ queryKey: AUTH_USER_KEY });
-  }, [queryClient]);
+    router.replace("/login");
+  }, [queryClient, router]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user: user ?? null,
       isLoading: hasToken && isPending,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user) && hasToken,
       login,
       register,
       logout,

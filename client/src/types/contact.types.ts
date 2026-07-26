@@ -41,8 +41,14 @@ export interface ImportRejectedRow {
 
 export interface ImportSummary {
   imported: number;
+  contactIds: string[];
   duplicates: ImportRejectedRow[];
   invalid: ImportRejectedRow[];
+}
+
+export interface ImportContactsOptions {
+  file: File;
+  tagIds?: string[];
 }
 
 export interface ListContactsParams {

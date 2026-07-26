@@ -1,12 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 
 export function LogoutButton() {
-  const router = useRouter();
   const { user, logout } = useAuth();
 
   return (
@@ -14,13 +11,7 @@ export function LogoutButton() {
       {user ? (
         <span className="text-sm text-[#535768]">{user.email}</span>
       ) : null}
-      <Button
-        variant="outline"
-        onClick={() => {
-          logout();
-          router.replace("/login");
-        }}
-      >
+      <Button variant="outline" onClick={logout}>
         Sign out
       </Button>
     </div>

@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import type { ImportSummary } from "@/types/contact.types";
+import type { ImportContactsOptions, ImportSummary } from "@/types/contact.types";
+import type { Tag } from "@/types/tag.types";
 
 interface CsvImportDialogProps {
   open: boolean;
   loading?: boolean;
-  onImport: (file: File) => Promise<ImportSummary>;
+  tags: Tag[];
+  onImport: (options: ImportContactsOptions) => Promise<ImportSummary>;
   onClose: () => void;
 }
 
@@ -26,19 +28,30 @@ function RejectedRowsTable({
   return (
     <div className="mt-4">
       <h3 className="text-sm font-medium text-[#333333]">{title}</h3>
-      <div className="mt-2 overflow-x-auto rounded-[16px] border border-[#d0d4e4]">
+      <div className="mt-2 table-scroll overflow-x-auto rounded-[16px] border border-[#d0d4e4]">
         <table className="min-w-full text-left text-sm">
           <thead className="bg-[#f5f6f8] text-[#535768]">
             <tr>
-              <th className="px-3 py-2">Row</th>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Email</th>
-              <th className="px-3 py-2">Reason</th>
+              <th scope="col" className="px-3 py-2">
+                Row
+              </th>
+              <th scope="col" className="px-3 py-2">
+                Name
+              </th>
+              <th scope="col" className="px-3 py-2">
+                Email
+              </th>
+              <th scope="col" className="px-3 py-2">
+                Reason
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={`${row.rowNumber}-${row.reason}`} className="border-t border-[#d0d4e4]">
+              <tr
+                key={`${row.rowNumber}-${row.reason}`}
+                className="border-t border-[#d0d4e4]"
+              >
                 <td className="px-3 py-2">{row.rowNumber}</td>
                 <td className="px-3 py-2">{row.name || "—"}</td>
                 <td className="px-3 py-2">{row.email || "—"}</td>
@@ -55,13 +68,16 @@ function RejectedRowsTable({
 export function CsvImportDialog({
   open,
   loading = false,
+  tags,
   onImport,
   onClose,
 }: CsvImportDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titleId = useId();
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -85,14 +101,25 @@ export function CsvImportDialog({
     if (!open) {
       setSummary(null);
       setError(null);
+      setSelectedTagIds([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
   }, [open]);
 
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((current) =>
+      current.includes(tagId)
+        ? current.filter((id) => id !== tagId)
+        : [...current, tagId],
+    );
+  };
+
   const handleClose = () => {
-    onClose();
+    if (!loading) {
+      onClose();
+    }
   };
 
   const handleImport = async () => {
@@ -105,7 +132,10 @@ export function CsvImportDialog({
     setError(null);
 
     try {
-      const result = await onImport(file);
+      const result = await onImport({
+        file,
+        tagIds: selectedTagIds,
+      });
       setSummary(result);
     } catch (importError) {
       setError(
@@ -119,34 +149,86 @@ export function CsvImportDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="w-full max-w-2xl rounded-[24px] border border-[#d0d4e4] bg-white p-6 text-[#333333] shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px] backdrop:bg-[#333333]/40"
+      aria-labelledby={titleId}
+      className="w-[min(100%,42rem)] rounded-[24px] border border-[#d0d4e4] bg-white p-6 text-[#333333] shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px] backdrop:bg-[#333333]/40"
       onCancel={(event) => {
         event.preventDefault();
         handleClose();
       }}
       onClose={handleClose}
     >
-      <h2 className="text-xl font-medium">Import contacts from CSV</h2>
+      <h2 id={titleId} className="text-xl font-medium">
+        Import contacts from CSV
+      </h2>
       <p className="mt-2 text-sm text-[#535768]">
         Required columns: name, email, phone, city, tags.
       </p>
 
-      <div className="mt-6 space-y-4">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,text/csv"
-          className="block w-full text-sm text-[#535768] file:mr-4 file:rounded-full file:border-0 file:bg-[#6161ff] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
-        />
+      <div className="mt-6 space-y-5">
+        <div>
+          <label htmlFor="csv-file" className="mb-2 block text-sm font-medium">
+            CSV file
+          </label>
+          <input
+            id="csv-file"
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            disabled={loading || Boolean(summary)}
+            className="block w-full text-sm text-[#535768] file:mr-4 file:rounded-full file:border-0 file:bg-[#6161ff] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white disabled:opacity-60"
+          />
+        </div>
+
+        {tags.length > 0 ? (
+          <fieldset className="rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4">
+            <legend className="px-1 text-sm font-medium text-[#333333]">
+              Apply tags to imported contacts (optional)
+            </legend>
+            <p className="mt-1 text-xs text-[#535768]">
+              Tags from the CSV are kept. Selected tags are added to every new
+              contact.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {tags.map((tag) => {
+                const active = selectedTagIds.includes(tag.id);
+                return (
+                  <label
+                    key={tag.id}
+                    className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                      active
+                        ? "border-[#6161ff] bg-[#e7ecff] text-[#333333]"
+                        : "border-[#d0d4e4] bg-white text-[#535768]"
+                    } ${loading || summary ? "pointer-events-none opacity-60" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={active}
+                      disabled={loading || Boolean(summary)}
+                      onChange={() => toggleTag(tag.id)}
+                    />
+                    {tag.name}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
 
         {error ? (
-          <p role="alert" className="text-sm text-[#e44258]">{error}</p>
+          <p role="alert" className="text-sm text-[#e44258]">
+            {error}
+          </p>
         ) : null}
 
         {summary ? (
-          <div className="rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4">
+          <div
+            role="status"
+            className="rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4"
+          >
             <p className="text-sm font-medium text-[#333333]">
-              {summary.imported} contact{summary.imported === 1 ? "" : "s"} imported
+              {summary.imported} contact{summary.imported === 1 ? "" : "s"}{" "}
+              imported
             </p>
             <p className="mt-1 text-sm text-[#535768]">
               {summary.duplicates.length} duplicate
@@ -165,7 +247,7 @@ export function CsvImportDialog({
           {summary ? "Done" : "Cancel"}
         </Button>
         {!summary ? (
-          <Button loading={loading} onClick={handleImport}>
+          <Button loading={loading} disabled={loading} onClick={handleImport}>
             Upload and import
           </Button>
         ) : null}

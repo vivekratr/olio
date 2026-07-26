@@ -132,9 +132,19 @@ export async function apiDelete<T>(path: string): Promise<T> {
   return body.data;
 }
 
-export async function apiUpload<T>(path: string, file: File): Promise<T> {
+export async function apiUpload<T>(
+  path: string,
+  file: File,
+  fields?: Record<string, string>,
+): Promise<T> {
   const formData = new FormData();
   formData.append("file", file);
+
+  if (fields) {
+    for (const [key, value] of Object.entries(fields)) {
+      formData.append(key, value);
+    }
+  }
 
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",

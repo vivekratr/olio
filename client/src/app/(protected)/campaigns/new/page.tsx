@@ -1,4 +1,4 @@
-import { CampaignEditorPage } from "@/pages/CampaignEditorPage";
+import { CampaignEditorPage } from "@/views/CampaignEditorPage";
 
 export default function NewCampaignRoute() {
   return <CampaignEditorPage />;

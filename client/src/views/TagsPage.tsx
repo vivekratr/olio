@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
+import { TableSkeleton } from "@/components/ui/skeletons/TableSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useContacts } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
@@ -20,14 +21,8 @@ import type { Tag } from "@/types/tag.types";
 const inputClassName =
   "w-full rounded-[16px] border border-[#d0d4e4] bg-white px-4 py-3 text-[#333333] outline-none transition-colors focus:border-[#6161ff]";
 
-function TableSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} className="h-12 rounded-[16px]" />
-      ))}
-    </div>
-  );
+function TableSkeletonLoader() {
+  return <TableSkeleton rows={5} columns={3} label="Loading tags" />;
 }
 
 function TagFormDialog({
@@ -384,12 +379,21 @@ export function TagsPage() {
       {error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : loading ? (
-        <TableSkeleton />
+        <TableSkeletonLoader />
       ) : tags.length === 0 ? (
         <EmptyState
           title="No tags yet"
-          description="Create tags to label contacts and build audiences."
-          action={<Button onClick={() => setCreateOpen(true)}>Create tag</Button>}
+          description="Tags help you label and group contacts for filtering and campaigns."
+          steps={[
+            "Create a tag like Newsletter or VIP",
+            "Assign tags when editing contacts or via bulk actions on the Contacts page",
+          ]}
+          action={
+            <Button onClick={() => { setFormError(null); setCreateOpen(true); }}>
+              Create tag
+            </Button>
+          }
+          hint="Tags are optional but make audience building much easier."
         />
       ) : (
         <div className="overflow-hidden rounded-[24px] border border-[#d0d4e4] bg-white shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]">

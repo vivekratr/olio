@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { TableSkeleton } from "@/components/ui/skeletons/TableSkeleton";
 import { useAudiences } from "@/hooks/useAudiences";
 import { useTags } from "@/hooks/useTags";
 import {
@@ -32,14 +32,8 @@ const inputClassName =
 
 const PREVIEW_LIMIT = 50;
 
-function TableSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} className="h-12 rounded-[16px]" />
-      ))}
-    </div>
-  );
+function TableSkeletonLoader() {
+  return <TableSkeleton rows={5} columns={4} label="Loading audiences" />;
 }
 
 function MemberCount({ audienceId }: { audienceId: string }) {
@@ -269,14 +263,20 @@ export function AudiencesPage() {
       {error ? (
         <ErrorState message={error.message} onRetry={() => refetch()} />
       ) : loading ? (
-        <TableSkeleton />
+        <TableSkeletonLoader />
       ) : audiences.length === 0 ? (
         <EmptyState
           title="No audiences yet"
-          description="Build saved contact groups with filter rules."
+          description="Audiences are saved groups of contacts built from filter rules."
+          steps={[
+            "Give your audience a name",
+            "Add rules by tag, city, or custom fields",
+            "Use the audience as recipients when creating a campaign",
+          ]}
           action={
             <Button onClick={() => setCreateOpen(true)}>Create audience</Button>
           }
+          hint="You'll need contacts before an audience can match anyone."
         />
       ) : (
         <div className="overflow-hidden rounded-[24px] border border-[#d0d4e4] bg-white shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]">

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import { GuestRoute } from "@/hooks/useAuth";
-import { LoginPage } from "@/pages/LoginPage";
+import { LoginPage } from "@/views/LoginPage";
 
 export default function LoginRoute() {
   return (

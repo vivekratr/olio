@@ -3,6 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  addContactsToTag,
+  removeContactFromTag,
+} from "@/services/tag.service";
+import {
   createContact,
   deleteContact,
   importContactsCsv,
@@ -11,6 +15,7 @@ import {
 } from "@/services/contact.service";
 import type {
   CreateContactInput,
+  ImportContactsOptions,
   ListContactsParams,
   UpdateContactInput,
 } from "@/types/contact.types";
@@ -46,7 +51,43 @@ export function useContacts(params: ListContactsParams) {
   });
 
   const importMutation = useMutation({
-    mutationFn: importContactsCsv,
+    mutationFn: (options: ImportContactsOptions) => importContactsCsv(options),
+    onSuccess: invalidate,
+  });
+
+  const bulkAssignTagsMutation = useMutation({
+    mutationFn: async ({
+      contactIds,
+      tagIds,
+    }: {
+      contactIds: string[];
+      tagIds: string[];
+    }) => {
+      await Promise.all(
+        tagIds.map((tagId) =>
+          addContactsToTag(tagId, { contactIds }),
+        ),
+      );
+    },
+    onSuccess: invalidate,
+  });
+
+  const bulkRemoveTagsMutation = useMutation({
+    mutationFn: async ({
+      contactIds,
+      tagIds,
+    }: {
+      contactIds: string[];
+      tagIds: string[];
+    }) => {
+      await Promise.all(
+        tagIds.flatMap((tagId) =>
+          contactIds.map((contactId) =>
+            removeContactFromTag(tagId, contactId),
+          ),
+        ),
+      );
+    },
     onSuccess: invalidate,
   });
 
@@ -60,9 +101,13 @@ export function useContacts(params: ListContactsParams) {
     updateContact: updateMutation.mutateAsync,
     deleteContact: deleteMutation.mutateAsync,
     importCsv: importMutation.mutateAsync,
+    bulkAssignTags: bulkAssignTagsMutation.mutateAsync,
+    bulkRemoveTags: bulkRemoveTagsMutation.mutateAsync,
     creating: createMutation.isPending,
     updating: updateMutation.isPending,
     deleting: deleteMutation.isPending,
     importing: importMutation.isPending,
+    bulkTagging:
+      bulkAssignTagsMutation.isPending || bulkRemoveTagsMutation.isPending,
   };
 }

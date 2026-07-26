@@ -8,7 +8,7 @@ import { CampaignForm } from "@/components/campaigns/CampaignForm";
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { FormSkeleton } from "@/components/ui/skeletons/FormSkeleton";
 import { useAudiences } from "@/hooks/useAudiences";
 import { useCampaign, useCampaigns } from "@/hooks/useCampaigns";
 import { useTags } from "@/hooks/useTags";
@@ -17,18 +17,6 @@ import { useToast } from "@/providers/ToastProvider";
 
 interface CampaignEditorPageProps {
   campaignId?: string;
-}
-
-function EditorSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-10 w-1/3" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Skeleton className="h-[520px] rounded-[24px]" />
-        <Skeleton className="h-[520px] rounded-[24px]" />
-      </div>
-    </div>
-  );
 }
 
 export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
@@ -141,7 +129,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
   if (!isCreate && loadingCampaign) {
     return (
       <PageLayout eyebrow="Campaigns">
-        <EditorSkeleton />
+        <FormSkeleton />
       </PageLayout>
     );
   }

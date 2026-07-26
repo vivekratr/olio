@@ -1,0 +1,80 @@
+/* Shared design tokens and accessibility utilities */
+
+:root {
+  --focus-ring: 0 0 0 3px rgba(97, 97, 255, 0.35);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.table-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+.bulk-toolbar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 20;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-enter 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter,
+  .motion-safe\:animate-\[fadeUp_0\.4s_ease-out\],
+  .motion-safe\:animate-\[fadeUp_0\.45s_ease-out\],
+  .motion-safe\:animate-\[fadeUp_0\.55s_ease-out\] {
+    animation: none;
+  }
+}
