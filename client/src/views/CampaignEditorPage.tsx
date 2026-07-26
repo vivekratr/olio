@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useCampaigns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTags } from "@/hooks/useTags";
+import { formatScheduledAt } from "@/lib/campaign-fields";
 import type { CreateCampaignInput } from "@/types/campaign.types";
 import { useToast } from "@/providers/ToastProvider";
 
@@ -54,6 +55,8 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const isDraft = isCreate || campaign?.status === "draft";
+  const isScheduled = campaign?.status === "scheduled";
+  const isEditable = isDraft || isScheduled;
   const title = isCreate
     ? "Create campaign"
     : campaign?.name ?? "Campaign";
@@ -75,7 +78,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
     setApiError(null);
     try {
       const saved = await persist(input);
-      toast("Draft saved", "success");
+      toast(isScheduled ? "Changes saved" : "Draft saved", "success");
       if (isCreate) {
         router.replace(`/campaigns/${saved.id}`);
       }
@@ -111,7 +114,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
     try {
       const saved = await persist(input);
       await scheduleCampaign({ id: saved.id, input: { scheduledAt } });
-      toast("Campaign scheduled", "success");
+      toast(isScheduled ? "Campaign rescheduled" : "Campaign scheduled", "success");
       router.push("/campaigns");
     } catch (error) {
       setApiError(
@@ -166,10 +169,20 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
         </div>
       }
     >
-      {!isCreate && campaign && !isDraft ? (
+      {!isCreate && campaign && !isEditable ? (
         <p className="mb-6 rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] px-4 py-3 text-sm text-[#535768]">
           This campaign is <strong className="text-[#333333]">{campaign.status}</strong>{" "}
           and can no longer be edited.
+        </p>
+      ) : null}
+
+      {isScheduled && campaign ? (
+        <p className="mb-6 rounded-[16px] border border-[#abf0ff] bg-[#abf0ff]/30 px-4 py-3 text-sm text-[#535768]">
+          Scheduled for{" "}
+          <strong className="text-[#333333]">
+            {formatScheduledAt(campaign.scheduledAt)}
+          </strong>
+          . Save changes or pick a new send time.
         </p>
       ) : null}
 
@@ -177,14 +190,14 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
         campaign={campaign}
         audiences={audiences}
         tags={tags}
-        readOnly={!isDraft}
+        readOnly={!isEditable}
         saving={creating || updating}
         sending={sending}
         scheduling={scheduling}
         apiError={apiError}
         onSaveDraft={handleSaveDraft}
-        onSendNow={isDraft ? handleSendNow : undefined}
-        onSchedule={isDraft ? handleSchedule : undefined}
+        onSendNow={isDraft && !isScheduled ? handleSendNow : undefined}
+        onSchedule={isEditable ? handleSchedule : undefined}
       />
     </PageLayout>
   );

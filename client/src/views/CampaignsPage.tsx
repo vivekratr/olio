@@ -70,6 +70,7 @@ function CampaignRow({
   onDuplicate: (campaign: Campaign) => void;
 }) {
   const isDraft = campaign.status === "draft";
+  const canEdit = isDraft || campaign.status === "scheduled";
   const canAnalytics =
     campaign.status === "sent" ||
     campaign.status === "sending" ||
@@ -96,14 +97,16 @@ function CampaignRow({
           <Button variant="outline" onClick={() => onDuplicate(campaign)}>
             Duplicate
           </Button>
-          {isDraft ? (
+          {canEdit ? (
             <>
               <Link href={`/campaigns/${campaign.id}`}>
                 <Button variant="outline">Edit</Button>
               </Link>
-              <Button variant="destructive" onClick={() => onDelete(campaign)}>
-                Delete
-              </Button>
+              {isDraft ? (
+                <Button variant="destructive" onClick={() => onDelete(campaign)}>
+                  Delete
+                </Button>
+              ) : null}
             </>
           ) : (
             <Link href={`/campaigns/${campaign.id}`}>

@@ -62,6 +62,12 @@ export class CampaignService {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<CampaignResponse> {
+    const existing = await this.findCampaignOrThrow(accountId, campaignId);
+    const status = existing.status as CampaignStatus;
+    if (status !== "draft" && status !== "scheduled") {
+      throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+
     const campaign = await this.campaignRepository.update(
       accountId,
       campaignId,
@@ -135,10 +141,17 @@ export class CampaignService {
       new Date(input.scheduledAt),
     );
 
-    const queueJobId = await this.campaignQueue.enqueueCampaign(
-      { accountId, campaignId },
-      transition.scheduledAt,
-    );
+    const queueJobId =
+      campaign.status === "scheduled" && campaign.queueJobId
+        ? await this.campaignQueue.rescheduleJob(
+            campaign.queueJobId,
+            { accountId, campaignId },
+            transition.scheduledAt!,
+          )
+        : await this.campaignQueue.enqueueCampaign(
+            { accountId, campaignId },
+            transition.scheduledAt,
+          );
 
     const updated = await this.campaignRepository.transitionStatus(
       accountId,
@@ -268,7 +281,7 @@ export class CampaignService {
         );
       } catch (error) {
         logger.error(`Campaign recipient send failed: ${recipient.id}`, {
-          error,
+          error: error instanceof Error ? error.message : error,
         });
         await this.campaignRecipientRepository.markFailed(recipient.id);
       }

@@ -30,11 +30,13 @@ export class CampaignScheduler {
 
   schedule(campaign: Campaign, scheduledAt: Date): CampaignTransition {
     const fromStatus = campaign.status as CampaignStatus;
-    if (fromStatus !== "draft") {
+    if (fromStatus !== "draft" && fromStatus !== "scheduled") {
       throw new AppError(INVALID_TRANSITION_MESSAGE, 400);
     }
 
-    this.assertTransition(fromStatus, "scheduled");
+    if (fromStatus === "draft") {
+      this.assertTransition(fromStatus, "scheduled");
+    }
 
     const validAt = this.validateScheduleTime(scheduledAt);
 

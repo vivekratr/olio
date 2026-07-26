@@ -259,7 +259,8 @@ export function CampaignForm({
   };
 
   const disabled = readOnly || saving || sending || scheduling || isSubmitting;
-  const showActions = !readOnly && campaign?.status !== "scheduled";
+  const isScheduled = campaign?.status === "scheduled";
+  const showActions = !readOnly;
   const sendRecipientNote = recipientConfirmMessage(
     recipientMode,
     pastePreview,
@@ -568,7 +569,7 @@ export function CampaignForm({
       {showActions ? (
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#d0d4e4] pt-6">
           <Button type="submit" variant="outline" loading={saving} disabled={disabled}>
-            Save draft
+            {isScheduled ? "Save changes" : "Save draft"}
           </Button>
           {onSchedule ? (
             <Button
@@ -577,11 +578,15 @@ export function CampaignForm({
               disabled={disabled}
               onClick={() => {
                 setActionError(null);
-                setScheduleAt(defaultScheduleValue());
+                setScheduleAt(
+                  campaign?.scheduledAt
+                    ? toLocalDatetimeValue(new Date(campaign.scheduledAt))
+                    : defaultScheduleValue(),
+                );
                 setScheduleOpen(true);
               }}
             >
-              Schedule
+              {isScheduled ? "Reschedule" : "Schedule"}
             </Button>
           ) : null}
           {onSendNow ? (
@@ -619,7 +624,7 @@ export function CampaignForm({
         onClose={() => setScheduleOpen(false)}
       >
         <DialogHeader
-          title="Schedule campaign"
+          title={isScheduled ? "Reschedule campaign" : "Schedule campaign"}
           onClose={() => setScheduleOpen(false)}
           disabled={scheduling}
         >
@@ -647,7 +652,7 @@ export function CampaignForm({
             Cancel
           </Button>
           <Button type="button" loading={scheduling} onClick={confirmSchedule}>
-            Schedule send
+            {isScheduled ? "Save new time" : "Schedule send"}
           </Button>
         </div>
       </dialog>

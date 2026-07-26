@@ -25,7 +25,9 @@ export class BrevoProvider implements EmailProvider {
     });
 
     if (!response.ok) {
-      throw new Error("Email send failed");
+      throw new Error(
+        `Email send failed: ${response.status} ${await response.text()}`,
+      );
     }
 
     const body = (await response.json()) as { messageId?: string };
