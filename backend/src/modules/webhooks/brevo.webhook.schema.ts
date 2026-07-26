@@ -12,6 +12,7 @@ const SUPPORTED_EVENTS: Record<string, string> = {
   sent: "sent",
   delivered: "delivered",
   opened: "opened",
+  unique_opened: "opened",
   hard_bounce: "bounced",
   soft_bounce: "bounced",
   blocked: "bounced",
