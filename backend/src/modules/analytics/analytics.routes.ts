@@ -8,7 +8,7 @@ export const createAnalyticsRoutes = (
   const router = Router();
 
   router.use(authenticate);
-  router.get("/:id/analytics", analyticsController.getCampaignAnalytics);
+  router.get("/:id", analyticsController.getCampaignAnalytics);
 
   return router;
 };

@@ -11,11 +11,13 @@ import { CampaignScheduler } from "./campaign.scheduler.js";
 import type {
   CampaignResponse,
   CampaignStatus,
+  CreateCampaignInput,
   PreviewRecipientsInput,
   PreviewRecipientsResponse,
   RecipientMode,
   RecipientResolutionResult,
   ScheduleCampaignInput,
+  UpdateCampaignInput,
 } from "./campaign.types.js";
 
 const CAMPAIGN_NOT_FOUND_MESSAGE = "Campaign not found";
@@ -32,6 +34,59 @@ export class CampaignService {
     private readonly campaignRecipientRepository: CampaignRecipientRepository,
     private readonly emailProvider: EmailProvider,
   ) {}
+
+  async listCampaigns(accountId: string): Promise<CampaignResponse[]> {
+    const campaigns = await this.campaignRepository.list(accountId);
+    return campaigns.map((campaign) => this.toCampaignResponse(campaign));
+  }
+
+  async getCampaign(
+    accountId: string,
+    campaignId: string,
+  ): Promise<CampaignResponse> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    return this.toCampaignResponse(campaign);
+  }
+
+  async createCampaign(
+    accountId: string,
+    input: CreateCampaignInput,
+  ): Promise<CampaignResponse> {
+    const campaign = await this.campaignRepository.create(accountId, input);
+    return this.toCampaignResponse(campaign);
+  }
+
+  async updateCampaign(
+    accountId: string,
+    campaignId: string,
+    input: UpdateCampaignInput,
+  ): Promise<CampaignResponse> {
+    const campaign = await this.campaignRepository.update(
+      accountId,
+      campaignId,
+      input,
+    );
+    if (!campaign) {
+      throw new AppError(CAMPAIGN_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toCampaignResponse(campaign);
+  }
+
+  async deleteCampaign(
+    accountId: string,
+    campaignId: string,
+  ): Promise<CampaignResponse> {
+    const campaign = await this.campaignRepository.delete(
+      accountId,
+      campaignId,
+    );
+    if (!campaign) {
+      throw new AppError(CAMPAIGN_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toCampaignResponse(campaign);
+  }
 
   async previewRecipients(
     accountId: string,

@@ -16,3 +16,10 @@ export const updateAudienceSchema = createAudienceSchema
   .refine((data) => data.name !== undefined || data.filter !== undefined, {
     message: "At least one field is required",
   });
+
+export const previewAudienceSchema = z.union([
+  z.object({ audienceId: z.string().min(1, "Audience id is required") }),
+  z.object({ filter: audienceFilterSchema }),
+]);
+
+export type PreviewAudienceInput = z.infer<typeof previewAudienceSchema>;

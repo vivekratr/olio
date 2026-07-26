@@ -5,7 +5,11 @@ import { ContactRepository } from "../contacts/contact.repository.js";
 import type { ContactResponse } from "../contacts/contact.types.js";
 import { ContactTagRepository } from "./contact-tag.repository.js";
 import { TagRepository } from "./tag.repository.js";
-import type { TagResponse } from "./tag.types.js";
+import type {
+  CreateTagInput,
+  TagResponse,
+  UpdateTagInput,
+} from "./tag.types.js";
 
 const CONTACT_NOT_FOUND_MESSAGE = "Contact not found";
 const TAG_NOT_FOUND_MESSAGE = "Tag not found";
@@ -16,6 +20,71 @@ export class TagService {
     private readonly contactRepository: ContactRepository,
     private readonly contactTagRepository: ContactTagRepository,
   ) {}
+
+  async listTags(accountId: string): Promise<TagResponse[]> {
+    const tags = await this.tagRepository.list(accountId);
+    return tags.map((tag) => this.toTagResponse(tag));
+  }
+
+  async createTag(
+    accountId: string,
+    input: CreateTagInput,
+  ): Promise<TagResponse> {
+    const tag = await this.tagRepository.create(accountId, input);
+    return this.toTagResponse(tag);
+  }
+
+  async updateTag(
+    accountId: string,
+    tagId: string,
+    input: UpdateTagInput,
+  ): Promise<TagResponse> {
+    const tag = await this.tagRepository.update(accountId, tagId, input);
+    if (!tag) {
+      throw new AppError(TAG_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toTagResponse(tag);
+  }
+
+  async deleteTag(accountId: string, tagId: string): Promise<TagResponse> {
+    const tag = await this.tagRepository.delete(accountId, tagId);
+    if (!tag) {
+      throw new AppError(TAG_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toTagResponse(tag);
+  }
+
+  async addContactsToTag(
+    accountId: string,
+    tagId: string,
+    contactIds: string[],
+  ): Promise<ContactResponse[]> {
+    await this.assertTagInAccount(accountId, tagId);
+    const uniqueContactIds = [...new Set(contactIds)];
+    await Promise.all(
+      uniqueContactIds.map((contactId) =>
+        this.assertContactInAccount(accountId, contactId),
+      ),
+    );
+
+    await Promise.all(
+      uniqueContactIds.map((contactId) =>
+        this.contactTagRepository.assign(contactId, tagId),
+      ),
+    );
+
+    return this.getContactsForTag(accountId, tagId);
+  }
+
+  async removeContactFromTag(
+    accountId: string,
+    tagId: string,
+    contactId: string,
+  ): Promise<void> {
+    await this.removeTag(accountId, contactId, tagId);
+  }
 
   async assignTags(
     accountId: string,

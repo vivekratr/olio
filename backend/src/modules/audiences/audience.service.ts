@@ -1,10 +1,15 @@
 import { AppError } from "../../common/errors/app-error.js";
-import type { Contact } from "../../generated/prisma/client.js";
+import type { Audience, Contact } from "../../generated/prisma/client.js";
 import { ContactRepository } from "../contacts/contact.repository.js";
 import type { ContactResponse } from "../contacts/contact.types.js";
 import { AudienceQueryBuilder } from "./audience-query.builder.js";
 import { AudienceRepository } from "./audience.repository.js";
-import type { AudienceFilter } from "./audience.types.js";
+import type {
+  AudienceFilter,
+  AudienceResponse,
+  CreateAudienceInput,
+  UpdateAudienceInput,
+} from "./audience.types.js";
 
 const AUDIENCE_NOT_FOUND_MESSAGE = "Audience not found";
 const PREVIEW_LIMIT = 50;
@@ -15,6 +20,79 @@ export class AudienceService {
     private readonly contactRepository: ContactRepository,
     private readonly queryBuilder: AudienceQueryBuilder = new AudienceQueryBuilder(),
   ) {}
+
+  async listAudiences(accountId: string): Promise<AudienceResponse[]> {
+    const audiences = await this.audienceRepository.list(accountId);
+    return audiences.map((audience) => this.toAudienceResponse(audience));
+  }
+
+  async getAudience(
+    accountId: string,
+    audienceId: string,
+  ): Promise<AudienceResponse> {
+    const audience = await this.audienceRepository.findById(
+      accountId,
+      audienceId,
+    );
+    if (!audience) {
+      throw new AppError(AUDIENCE_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toAudienceResponse(audience);
+  }
+
+  async createAudience(
+    accountId: string,
+    input: CreateAudienceInput,
+  ): Promise<AudienceResponse> {
+    const audience = await this.audienceRepository.create(accountId, input);
+    return this.toAudienceResponse(audience);
+  }
+
+  async updateAudience(
+    accountId: string,
+    audienceId: string,
+    input: UpdateAudienceInput,
+  ): Promise<AudienceResponse> {
+    const audience = await this.audienceRepository.update(
+      accountId,
+      audienceId,
+      input,
+    );
+    if (!audience) {
+      throw new AppError(AUDIENCE_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toAudienceResponse(audience);
+  }
+
+  async deleteAudience(
+    accountId: string,
+    audienceId: string,
+  ): Promise<AudienceResponse> {
+    const audience = await this.audienceRepository.delete(
+      accountId,
+      audienceId,
+    );
+    if (!audience) {
+      throw new AppError(AUDIENCE_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toAudienceResponse(audience);
+  }
+
+  async previewByFilter(
+    accountId: string,
+    filter: AudienceFilter,
+  ): Promise<ContactResponse[]> {
+    const where = this.queryBuilder.build(filter);
+    const contacts = await this.contactRepository.findByAudienceWhere(
+      accountId,
+      where,
+      { limit: PREVIEW_LIMIT },
+    );
+    return contacts.map((contact) => this.toContactResponse(contact));
+  }
 
   async previewAudience(
     accountId: string,
@@ -61,6 +139,16 @@ export class AudienceService {
     }
 
     return this.queryBuilder.build(audience.filter as unknown as AudienceFilter);
+  }
+
+  private toAudienceResponse(audience: Audience): AudienceResponse {
+    return {
+      id: audience.id,
+      name: audience.name,
+      filter: audience.filter as unknown as AudienceFilter,
+      createdAt: audience.createdAt.toISOString(),
+      updatedAt: audience.updatedAt.toISOString(),
+    };
   }
 
   private toContactResponse(contact: Contact): ContactResponse {

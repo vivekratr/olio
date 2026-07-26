@@ -27,3 +27,7 @@ export const updateCampaignSchema = createCampaignSchema
       data.recipientMode !== undefined,
     { message: "At least one field is required" },
   );
+
+export const scheduleCampaignSchema = z.object({
+  scheduledAt: z.string().min(1, "Scheduled time is required"),
+});
