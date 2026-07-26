@@ -2,7 +2,7 @@
 
 ## 1. One-line description
 
-A lightweight email marketing tool: manage **contacts** and **audiences**, build **campaigns**, **send now or schedule** for later, and view **open/delivery analytics** from provider webhooks.
+A lightweight email marketing tool: manage **contacts** and **audiences**, build **campaigns**, **send now or schedule** for later (scheduled campaigns can be **rescheduled**), and view **open/delivery analytics** from provider webhooks.
 
 ## 2. Stack
 
@@ -117,7 +117,11 @@ docker compose up --build -d
 
 Run the client locally with `NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1`.
 
-## 7. Tradeoffs
+## 7. Not shown in demo video
+
+- **Reschedule scheduled campaigns** — open a campaign with status **Scheduled**, change the send date/time, and save. The backend updates the BullMQ job (`CampaignScheduler` + `rescheduleJob`) so the new time is used even after a server restart.
+
+## 8. Tradeoffs
 
 - Tenant isolation enforced in the API (`accountId` from JWT), not just the UI
 - Scheduled sends via BullMQ — not `setTimeout`
