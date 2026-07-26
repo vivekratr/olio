@@ -13,20 +13,20 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm@11.17.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY prisma.config.ts ./
+COPY prisma.config.ts tsconfig.json ./
 COPY prisma ./prisma
+COPY src ./src
 
 # Caret ranges in devEngines/lockfile break pnpm inside Docker
 RUN sed -i 's/\^11.17.0/11.17.0/g' package.json pnpm-lock.yaml \
   && sed -i 's/bcrypt: false/bcrypt: true/' pnpm-workspace.yaml
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
-COPY tsconfig.json ./
-COPY src ./src
-
-RUN pnpm build
+RUN pnpm exec prisma generate \
+  && pnpm build \
+  && test -f dist/generated/prisma/enums.js
 
 FROM node:22-bookworm-slim AS runner
 
