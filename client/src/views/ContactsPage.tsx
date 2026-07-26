@@ -14,7 +14,6 @@ import { useContacts } from "@/hooks/useContacts";
 import { useTags } from "@/hooks/useTags";
 import {
   formatCustomFieldsPreview,
-  parseTags,
 } from "@/lib/contact-fields";
 import { useToast } from "@/providers/ToastProvider";
 import type { Contact, CreateContactInput } from "@/types/contact.types";
@@ -632,7 +631,7 @@ export function ContactsPage() {
                       {contact.email || contact.phone || "No email or phone"}
                     </p>
                     <div className="mt-2">
-                      <TagPills tags={parseTags(contact.customFields.tags)} />
+                      <TagPills tags={contact.tags} />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Button

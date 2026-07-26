@@ -221,6 +221,7 @@ export class TagService {
       name: contact.name,
       email: contact.email,
       phone: contact.phone,
+      tags: [],
       customFields: contact.customFields as Record<string, unknown>,
       createdAt: contact.createdAt.toISOString(),
       updatedAt: contact.updatedAt.toISOString(),

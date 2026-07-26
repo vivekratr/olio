@@ -25,10 +25,7 @@ export function splitCustomFields(customFields: Record<string, unknown>): {
   tags: string[];
   dynamicFields: Array<{ key: string; value: string }>;
 } {
-  const tags =
-    contact.tags.length > 0
-      ? contact.tags
-      : parseTags(customFields[TAGS_FIELD]);
+  const tags = parseTags(customFields[TAGS_FIELD]);
   const dynamicFields = Object.entries(customFields)
     .filter(([key]) => key !== TAGS_FIELD)
     .map(([key, value]) => ({
@@ -92,7 +89,12 @@ export function contactToFormDefaults(contact?: Contact): {
     };
   }
 
-  const { tags, dynamicFields } = splitCustomFields(contact.customFields);
+  const tags =
+    contact.tags.length > 0
+      ? contact.tags
+      : parseTags(contact.customFields[TAGS_FIELD]);
+
+  const { dynamicFields } = splitCustomFields(contact.customFields);
 
   return {
     name: contact.name ?? "",
