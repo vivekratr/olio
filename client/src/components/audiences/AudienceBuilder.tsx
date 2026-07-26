@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   createEmptyRule,
@@ -117,8 +118,7 @@ export function AudienceBuilder({
               <label className="mb-1 block text-xs font-medium text-[#535768]">
                 Field
               </label>
-              <select
-                className={`w-full ${inputClassName}`}
+              <Select
                 value={rule.fieldType}
                 onChange={(event) =>
                   updateRule(rule.id, {
@@ -130,7 +130,7 @@ export function AudienceBuilder({
                 <option value="city">City</option>
                 <option value="department">Department</option>
                 <option value="custom">Custom field</option>
-              </select>
+              </Select>
             </div>
 
             {rule.fieldType === "custom" ? (
@@ -154,8 +154,7 @@ export function AudienceBuilder({
               <label className="mb-1 block text-xs font-medium text-[#535768]">
                 Operator
               </label>
-              <select
-                className={`w-full ${inputClassName}`}
+              <Select
                 value={rule.operator}
                 onChange={(event) =>
                   updateRule(rule.id, {
@@ -166,7 +165,7 @@ export function AudienceBuilder({
                 <option value="eq">equals</option>
                 <option value="contains">contains</option>
                 <option value="neq">not equals</option>
-              </select>
+              </Select>
             </div>
 
             <div className="min-w-[160px] flex-1">
@@ -174,18 +173,19 @@ export function AudienceBuilder({
                 Value
               </label>
               {rule.fieldType === "tag" && tagNames.length > 0 ? (
-                <select
-                  className={`w-full ${inputClassName}`}
+                <Select
                   value={rule.value}
                   onChange={(event) =>
                     updateRule(rule.id, { value: event.target.value })
                   }
                 >
-                  <option value="">Select tag</option>
+                  <option value="" disabled>
+                    Select tag
+                  </option>
                   {tagNames.map((name) => (
                     <option key={name} value={name}>{name}</option>
                   ))}
-                </select>
+                </Select>
               ) : (
                 <input
                   type="text"
@@ -237,17 +237,15 @@ export function AudienceBuilder({
                 : ""}
             </p>
             {previewContacts.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-sm text-[#333333]">
-                {previewContacts.slice(0, 8).map((contact) => (
+              <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto text-sm text-[#333333]">
+                {previewContacts.map((contact) => (
                   <li key={contact.id}>
                     {contact.name || contact.email || contact.phone || contact.id}
+                    {contact.name && contact.email ? (
+                      <span className="text-[#535768]"> · {contact.email}</span>
+                    ) : null}
                   </li>
                 ))}
-                {previewContacts.length > 8 ? (
-                  <li className="text-[#535768]">
-                    +{previewContacts.length - 8} more
-                  </li>
-                ) : null}
               </ul>
             ) : null}
           </>

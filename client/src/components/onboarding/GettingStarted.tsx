@@ -188,7 +188,7 @@ export function GettingStarted() {
       <div className="flex flex-wrap items-center gap-4 px-5 py-4">
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="btn-interactive flex min-w-0 flex-1 items-center gap-3 rounded-[12px] text-left hover:bg-[#f5f6f8]/70"
           aria-expanded={expanded}
           aria-controls={panelId}
           onClick={() => setCollapsed(expanded)}
@@ -221,7 +221,7 @@ export function GettingStarted() {
           ) : null}
           <button
             type="button"
-            className="rounded-full px-3 py-1.5 text-sm font-medium text-[#535768] transition-colors hover:bg-[#f5f6f8] hover:text-[#333333]"
+            className="btn-interactive rounded-full px-3 py-1.5 text-sm font-medium text-[#535768] hover:bg-[#f5f6f8] hover:text-[#333333]"
             onClick={() => setCollapsed(true)}
           >
             Hide

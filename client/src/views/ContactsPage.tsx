@@ -21,6 +21,26 @@ import type { Contact, CreateContactInput } from "@/types/contact.types";
 
 const PAGE_SIZE = 20;
 
+function tagsForBulkAction(
+  mode: "add" | "remove",
+  selectedContacts: Contact[],
+  allTags: { id: string; name: string }[],
+) {
+  if (mode === "remove") {
+    return allTags.filter((tag) =>
+      selectedContacts.some((contact) =>
+        (contact.tags ?? []).includes(tag.name),
+      ),
+    );
+  }
+
+  return allTags.filter((tag) =>
+    selectedContacts.some(
+      (contact) => !(contact.tags ?? []).includes(tag.name),
+    ),
+  );
+}
+
 function TagPills({ tags = [] }: { tags?: string[] }) {
   if (tags.length === 0) {
     return <span className="text-[#535768]">—</span>;
@@ -119,6 +139,7 @@ function BulkTagDialog({
   open,
   mode,
   tags,
+  emptyMessage,
   loading,
   onClose,
   onApply,
@@ -126,6 +147,7 @@ function BulkTagDialog({
   open: boolean;
   mode: "add" | "remove";
   tags: { id: string; name: string }[];
+  emptyMessage: string;
   loading: boolean;
   onClose: () => void;
   onApply: (tagIds: string[]) => void;
@@ -189,9 +211,7 @@ function BulkTagDialog({
       </DialogHeader>
 
       {tags.length === 0 ? (
-        <p className="mt-4 text-sm text-[#535768]">
-          No tags yet. Create tags from the Tags page first.
-        </p>
+        <p className="mt-4 text-sm text-[#535768]">{emptyMessage}</p>
       ) : (
         <div className="mt-4 flex flex-wrap gap-2">
           {tags.map((tag) => {
@@ -251,6 +271,7 @@ export function ContactsPage() {
   const [bulkConfirmMode, setBulkConfirmMode] = useState<"add" | "remove">("add");
   const [pendingTagIds, setPendingTagIds] = useState<string[]>([]);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -277,11 +298,13 @@ export function ContactsPage() {
     importCsv,
     bulkAssignTags,
     bulkRemoveTags,
+    bulkDeleteContacts,
     creating,
     updating,
     deleting,
     importing,
     bulkTagging,
+    bulkDeleting,
   } = useContacts({
     page,
     limit: PAGE_SIZE,
@@ -297,7 +320,16 @@ export function ContactsPage() {
     pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
   const someOnPageSelected = pageIds.some((id) => selectedIds.has(id));
   const controlsDisabled =
-    creating || updating || deleting || importing || bulkTagging;
+    creating ||
+    updating ||
+    deleting ||
+    importing ||
+    bulkTagging ||
+    bulkDeleting;
+
+  const selectedContacts = contacts.filter((contact) =>
+    selectedIds.has(contact.id),
+  );
 
   const toggleContact = (contactId: string) => {
     setSelectedIds((current) => {
@@ -401,6 +433,30 @@ export function ContactsPage() {
     setBulkConfirmOpen(true);
   };
 
+  const handleBulkDelete = async () => {
+    const contactIds = [...selectedIds];
+    if (contactIds.length === 0) {
+      return;
+    }
+
+    try {
+      await bulkDeleteContacts(contactIds);
+      setBulkDeleteOpen(false);
+      setSelectedIds(new Set());
+      toast(
+        `${contactIds.length} contact${contactIds.length === 1 ? "" : "s"} deleted`,
+        "success",
+      );
+    } catch (bulkDeleteError) {
+      toast(
+        bulkDeleteError instanceof Error
+          ? bulkDeleteError.message
+          : "Could not delete selected contacts.",
+        "error",
+      );
+    }
+  };
+
   const runBulkTagAction = async () => {
     const contactIds = [...selectedIds];
     if (contactIds.length === 0 || pendingTagIds.length === 0) {
@@ -442,6 +498,19 @@ export function ContactsPage() {
     .filter((tag) => pendingTagIds.includes(tag.id))
     .map((tag) => tag.name)
     .join(", ");
+
+  const bulkTagModeResolved = bulkTagMode ?? "add";
+  const bulkTagOptions = tagsForBulkAction(
+    bulkTagModeResolved,
+    selectedContacts,
+    tags,
+  );
+  const bulkTagEmptyMessage =
+    tags.length === 0
+      ? "No tags yet. Create tags from the Tags page first."
+      : bulkTagModeResolved === "add"
+        ? "Every selected contact already has all of your tags."
+        : "None of the selected contacts have tags you can remove.";
 
   return (
     <PageLayout
@@ -715,6 +784,13 @@ export function ContactsPage() {
               Remove tags
             </Button>
             <Button
+              variant="destructive"
+              disabled={controlsDisabled}
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              Delete
+            </Button>
+            <Button
               variant="outline"
               disabled={controlsDisabled}
               onClick={() => setSelectedIds(new Set())}
@@ -774,10 +850,22 @@ export function ContactsPage() {
         }}
       />
 
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title="Delete selected contacts?"
+        description={`Remove ${selectedCount} contact${selectedCount === 1 ? "" : "s"} from your audience. This cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        loading={bulkDeleting}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkDeleteOpen(false)}
+      />
+
       <BulkTagDialog
         open={bulkTagMode !== null}
-        mode={bulkTagMode ?? "add"}
-        tags={tags}
+        mode={bulkTagModeResolved}
+        tags={bulkTagOptions}
+        emptyMessage={bulkTagEmptyMessage}
         loading={bulkTagging}
         onClose={() => setBulkTagMode(null)}
         onApply={handleBulkTagApply}

@@ -102,6 +102,13 @@ export function useContacts(params: ListContactsParams) {
     onSuccess: invalidate,
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (contactIds: string[]) => {
+      await Promise.all(contactIds.map((id) => deleteContact(id)));
+    },
+    onSuccess: invalidate,
+  });
+
   return {
     data: query.data,
     loading: query.isLoading,
@@ -114,11 +121,13 @@ export function useContacts(params: ListContactsParams) {
     importCsv: importMutation.mutateAsync,
     bulkAssignTags: bulkAssignTagsMutation.mutateAsync,
     bulkRemoveTags: bulkRemoveTagsMutation.mutateAsync,
+    bulkDeleteContacts: bulkDeleteMutation.mutateAsync,
     creating: createMutation.isPending,
     updating: updateMutation.isPending,
     deleting: deleteMutation.isPending,
     importing: importMutation.isPending,
     bulkTagging:
       bulkAssignTagsMutation.isPending || bulkRemoveTagsMutation.isPending,
+    bulkDeleting: bulkDeleteMutation.isPending,
   };
 }

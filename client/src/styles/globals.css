@@ -42,6 +42,33 @@ dialog:modal {
   }
 }
 
+.btn-interactive {
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition:
+    color 200ms ease-out,
+    background-color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn-interactive:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .btn-interactive:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 100ms;
+  }
+}
+
+.btn-interactive:disabled {
+  cursor: not-allowed;
+}
+
 .table-scroll {
   -webkit-overflow-scrolling: touch;
 }

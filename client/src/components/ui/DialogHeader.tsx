@@ -15,7 +15,7 @@ export function DialogCloseButton({
       aria-label="Close dialog"
       onClick={onClick}
       disabled={disabled}
-      className="shrink-0 rounded-full p-1 text-[#535768] transition hover:bg-[#f5f6f8] hover:text-[#333333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6161ff] disabled:opacity-50"
+      className="btn-interactive shrink-0 rounded-full p-1 text-[#535768] hover:bg-[#f5f6f8] hover:text-[#333333] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6161ff] disabled:opacity-50"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DialogHeader } from "@/components/ui/DialogHeader";
+import { Select } from "@/components/ui/Select";
 import {
   campaignToFormDefaults,
   defaultScheduleValue,
@@ -377,19 +378,21 @@ export function CampaignForm({
                 <label htmlFor="campaign-audience" className="mb-2 block text-sm font-medium">
                   Audience
                 </label>
-                <select
+                <Select
                   id="campaign-audience"
-                  className={inputClassName}
                   disabled={disabled}
+                  aria-invalid={errors.audienceId ? true : undefined}
                   {...register("audienceId")}
                 >
-                  <option value="">Select an audience</option>
+                  <option value="" disabled>
+                    Select an audience
+                  </option>
                   {audiences.map((audience) => (
                     <option key={audience.id} value={audience.id}>
                       {audience.name}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {errors.audienceId ? (
                   <p className="mt-1 text-sm text-[#e44258]">
                     {errors.audienceId.message}
@@ -403,19 +406,21 @@ export function CampaignForm({
                 <label htmlFor="campaign-tag" className="mb-2 block text-sm font-medium">
                   Tag
                 </label>
-                <select
+                <Select
                   id="campaign-tag"
-                  className={inputClassName}
                   disabled={disabled}
+                  aria-invalid={errors.tagId ? true : undefined}
                   {...register("tagId")}
                 >
-                  <option value="">Select a tag</option>
+                  <option value="" disabled>
+                    Select a tag
+                  </option>
                   {tags.map((tag) => (
                     <option key={tag.id} value={tag.id}>
                       {tag.name}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {errors.tagId ? (
                   <p className="mt-1 text-sm text-[#e44258]">{errors.tagId.message}</p>
                 ) : null}
@@ -518,10 +523,10 @@ export function CampaignForm({
                 <button
                   key={value}
                   type="button"
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`btn-interactive rounded-full px-4 py-1.5 text-sm font-medium ${
                     tab === value
                       ? "bg-white text-[#333333] shadow-sm"
-                      : "text-[#535768] hover:text-[#333333]"
+                      : "text-[#535768] hover:bg-white/70 hover:text-[#333333]"
                   }`}
                   onClick={() => setTab(value)}
                 >
