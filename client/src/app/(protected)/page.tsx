@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { LogoutButton } from "@/components/LogoutButton";
 import { PageLayout } from "@/components/ui/PageLayout";
 
@@ -14,6 +16,26 @@ export default function Home() {
           campaign&apos;s analytics page to watch delivery metrics update in
           real time.
         </p>
+        <div className="mt-6 flex flex-wrap gap-4">
+          <Link
+            href="/contacts"
+            className="font-medium text-[#6161ff] hover:underline"
+          >
+            Contacts
+          </Link>
+          <Link
+            href="/tags"
+            className="font-medium text-[#6161ff] hover:underline"
+          >
+            Tags
+          </Link>
+          <Link
+            href="/audiences"
+            className="font-medium text-[#6161ff] hover:underline"
+          >
+            Audiences
+          </Link>
+        </div>
       </div>
     </PageLayout>
   );

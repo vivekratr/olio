@@ -31,16 +31,19 @@ export function clearAccessToken(): void {
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as ApiFailure;
-    if (body.message) {
-      return body.message;
-    }
-  } catch {
-    // Response body was not JSON.
-  }
+  const fallback = `We couldn't complete that request (${response.status}). Please try again.`;
 
-  return `We couldn't complete that request (${response.status}). Please try again.`;
+  try {
+    const text = await response.text();
+    if (!text) {
+      return fallback;
+    }
+
+    const body = JSON.parse(text) as ApiFailure;
+    return body.message ?? fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function authHeaders(): Record<string, string> {
@@ -69,6 +72,74 @@ export async function apiPost<T>(path: string, data: unknown): Promise<T> {
       ...authHeaders(),
     },
     body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body = (await response.json()) as ApiSuccess<T>;
+  return body.data;
+}
+
+export async function apiPut<T>(path: string, data: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body = (await response.json()) as ApiSuccess<T>;
+  return body.data;
+}
+
+export async function apiPatch<T>(path: string, data: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body = (await response.json()) as ApiSuccess<T>;
+  return body.data;
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const body = (await response.json()) as ApiSuccess<T>;
+  return body.data;
+}
+
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
   });
 
   if (!response.ok) {
