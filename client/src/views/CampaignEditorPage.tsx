@@ -10,7 +10,12 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
 import { FormSkeleton } from "@/components/ui/skeletons/FormSkeleton";
 import { useAudiences } from "@/hooks/useAudiences";
-import { useCampaign, useCampaigns } from "@/hooks/useCampaigns";
+import {
+  prepareCampaignAnalyticsView,
+  useCampaign,
+  useCampaigns,
+} from "@/hooks/useCampaigns";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTags } from "@/hooks/useTags";
 import type { CreateCampaignInput } from "@/types/campaign.types";
 import { useToast } from "@/providers/ToastProvider";
@@ -21,6 +26,7 @@ interface CampaignEditorPageProps {
 
 export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const isCreate = !campaignId;
 
@@ -85,9 +91,10 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
     setApiError(null);
     try {
       const saved = await persist(input);
-      await sendCampaign(saved.id);
-      toast("Campaign queued for sending", "success");
-      router.push(`/campaigns/${saved.id}/analytics`);
+      const sending = await sendCampaign(saved.id);
+      await prepareCampaignAnalyticsView(queryClient, sending);
+      toast("Campaign is sending", "success");
+      router.push(`/campaigns/${sending.id}/analytics`);
     } catch (error) {
       setApiError(
         error instanceof Error ? error.message : "Could not send campaign.",

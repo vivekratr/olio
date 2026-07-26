@@ -1,7 +1,13 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 
+import { getCampaignAnalytics } from "@/services/analytics.service";
 import {
   createCampaign,
   deleteCampaign,
@@ -12,6 +18,7 @@ import {
   updateCampaign,
 } from "@/services/campaign.service";
 import type {
+  Campaign,
   CreateCampaignInput,
   ScheduleCampaignInput,
   UpdateCampaignInput,
@@ -32,6 +39,17 @@ function campaignListNeedsPolling(campaigns: { status: string }[] | undefined) {
 
 export function campaignKey(id: string) {
   return ["campaigns", id] as const;
+}
+
+export async function prepareCampaignAnalyticsView(
+  queryClient: QueryClient,
+  campaign: Campaign,
+) {
+  queryClient.setQueryData(campaignKey(campaign.id), campaign);
+  await queryClient.prefetchQuery({
+    queryKey: ["campaignAnalytics", campaign.id],
+    queryFn: () => getCampaignAnalytics(campaign.id),
+  });
 }
 
 export function useCampaigns() {

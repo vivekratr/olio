@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { DuplicateCampaignDialog } from "@/components/campaigns/DuplicateCampaignDialog";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +13,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
 import { TableSkeleton } from "@/components/ui/skeletons/TableSkeleton";
 import { useAudiences } from "@/hooks/useAudiences";
-import { useCampaigns } from "@/hooks/useCampaigns";
+import { prepareCampaignAnalyticsView, useCampaigns } from "@/hooks/useCampaigns";
 import { useTags } from "@/hooks/useTags";
 import { formatScheduledAt } from "@/lib/campaign-fields";
 import { useToast } from "@/providers/ToastProvider";
@@ -122,6 +123,7 @@ function CampaignRow({
 
 export function CampaignsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { audiences } = useAudiences();
   const { tags } = useTags();
@@ -175,10 +177,11 @@ export function CampaignsPage() {
     setDuplicateError(null);
     try {
       const created = await createCampaign(input);
-      await sendCampaign(created.id);
+      const sending = await sendCampaign(created.id);
+      await prepareCampaignAnalyticsView(queryClient, sending);
       closeDuplicate();
-      toast("Campaign queued for sending", "success");
-      router.push(`/campaigns/${created.id}/analytics`);
+      toast("Campaign is sending", "success");
+      router.push(`/campaigns/${sending.id}/analytics`);
     } catch (sendError) {
       setDuplicateError(
         sendError instanceof Error

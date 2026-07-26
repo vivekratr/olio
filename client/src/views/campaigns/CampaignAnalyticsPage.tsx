@@ -5,9 +5,13 @@ import { memo, useMemo } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
-import { AnalyticsSkeleton } from "@/components/ui/skeletons/AnalyticsSkeleton";
+import { useCampaign } from "@/hooks/useCampaigns";
 import { useCampaignAnalytics } from "@/hooks/useCampaignAnalytics";
 import { useToast } from "@/providers/ToastProvider";
+import type {
+  CampaignMetrics,
+  CampaignRates,
+} from "@/types/analytics.types";
 
 interface CampaignAnalyticsPageProps {
   campaignId: string;
@@ -18,6 +22,22 @@ interface StatCardProps {
   value: string;
   tint: string;
 }
+
+const EMPTY_METRICS: CampaignMetrics = {
+  total: 0,
+  pending: 0,
+  sent: 0,
+  delivered: 0,
+  opened: 0,
+  bounced: 0,
+  failed: 0,
+};
+
+const EMPTY_RATES: CampaignRates = {
+  deliveryRate: 0,
+  openRate: 0,
+  bounceRate: 0,
+};
 
 const StatCard = memo(function StatCard({ label, value, tint }: StatCardProps) {
   return (
@@ -53,59 +73,75 @@ function LiveBadge() {
   );
 }
 
+function SendingBanner() {
+  return (
+    <div
+      aria-live="polite"
+      className="rounded-[16px] border border-[#d0d4e4] bg-[#e7ecff] px-4 py-3 text-sm text-[#535768]"
+    >
+      <p className="font-medium text-[#333333]">Your campaign is sending</p>
+      <p className="mt-1">
+        Delivery stats will fill in here automatically as emails go out.
+      </p>
+    </div>
+  );
+}
+
+function buildCountStats(metrics: CampaignMetrics) {
+  return [
+    { label: "Sent", value: formatCount(metrics.sent), tint: "#e7ecff" },
+    {
+      label: "Delivered",
+      value: formatCount(metrics.delivered),
+      tint: "#bcfe90",
+    },
+    { label: "Opened", value: formatCount(metrics.opened), tint: "#abf0ff" },
+    {
+      label: "Bounced",
+      value: formatCount(metrics.bounced),
+      tint: "#eddff7",
+    },
+  ];
+}
+
+function buildRateStats(rates: CampaignRates) {
+  return [
+    {
+      label: "Delivery Rate",
+      value: formatRate(rates.deliveryRate),
+      tint: "#d1faff",
+    },
+    {
+      label: "Open Rate",
+      value: formatRate(rates.openRate),
+      tint: "#dbdbff",
+    },
+    {
+      label: "Bounce Rate",
+      value: formatRate(rates.bounceRate),
+      tint: "#fcd0f8",
+    },
+  ];
+}
+
 export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps) {
   const { toast } = useToast();
   const { data, loading, error, refetch, refetching } =
     useCampaignAnalytics(campaignId);
+  const { campaign: cachedCampaign } = useCampaign(campaignId);
 
-  const countStats = useMemo(() => {
-    if (!data) {
-      return [];
-    }
+  const metrics = data?.metrics ?? EMPTY_METRICS;
+  const rates = data?.rates ?? EMPTY_RATES;
+  const status = data?.campaign.status ?? cachedCampaign?.status;
+  const title = data?.campaign.name ?? cachedCampaign?.name ?? "Campaign analytics";
 
-    const { metrics } = data;
+  const inProgress =
+    loading ||
+    (metrics.sent === 0 &&
+      (status === "sending" || status === "scheduled"));
 
-    return [
-      { label: "Sent", value: formatCount(metrics.sent), tint: "#e7ecff" },
-      {
-        label: "Delivered",
-        value: formatCount(metrics.delivered),
-        tint: "#bcfe90",
-      },
-      { label: "Opened", value: formatCount(metrics.opened), tint: "#abf0ff" },
-      {
-        label: "Bounced",
-        value: formatCount(metrics.bounced),
-        tint: "#eddff7",
-      },
-    ];
-  }, [data]);
-
-  const rateStats = useMemo(() => {
-    if (!data) {
-      return [];
-    }
-
-    const { rates } = data;
-
-    return [
-      {
-        label: "Delivery Rate",
-        value: formatRate(rates.deliveryRate),
-        tint: "#d1faff",
-      },
-      {
-        label: "Open Rate",
-        value: formatRate(rates.openRate),
-        tint: "#dbdbff",
-      },
-      {
-        label: "Bounce Rate",
-        value: formatRate(rates.bounceRate),
-        tint: "#fcd0f8",
-      },
-    ];
-  }, [data]);
+  const countStats = useMemo(() => buildCountStats(metrics), [metrics]);
+  const rateStats = useMemo(() => buildRateStats(rates), [rates]);
 
   const handleRetry = async () => {
     const result = await refetch();
@@ -120,15 +156,7 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
     toast("Analytics refreshed.", "success");
   };
 
-  if (loading) {
-    return (
-      <PageLayout>
-        <AnalyticsSkeleton />
-      </PageLayout>
-    );
-  }
-
-  if (error) {
+  if (error && !data) {
     return (
       <PageLayout eyebrow="Campaign analytics">
         <ErrorState
@@ -141,7 +169,7 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
     );
   }
 
-  if (!data) {
+  if (!loading && !data) {
     return (
       <PageLayout eyebrow="Campaign analytics">
         <ErrorState message="No analytics data returned. Please try again." />
@@ -149,7 +177,7 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
     );
   }
 
-  if (data.metrics.sent === 0) {
+  if (!loading && data?.metrics.sent === 0 && data.campaign.status === "draft") {
     return (
       <PageLayout eyebrow="Campaign analytics">
         <EmptyState
@@ -168,10 +196,12 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
   return (
     <PageLayout
       eyebrow="Campaign analytics"
-      title={data.campaign.name}
+      title={title}
       headerAction={<LiveBadge />}
     >
       <div className="space-y-8">
+        {inProgress ? <SendingBanner /> : null}
+
         <div>
           <h2 className="mb-4 text-sm font-medium uppercase tracking-[0.12em] text-[#535768]">
             Delivery

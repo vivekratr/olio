@@ -223,6 +223,11 @@ function TagContactsDialog({
     }
   };
 
+  const assignedIds = new Set(assigned.map((contact) => contact.id));
+  const availableContacts = (contactsData?.items ?? []).filter(
+    (contact) => !assignedIds.has(contact.id),
+  );
+
   return (
     <dialog
       ref={dialogRef}
@@ -282,7 +287,7 @@ function TagContactsDialog({
             <Skeleton className="h-24 rounded-[16px]" />
           ) : (
             <ul className="max-h-48 space-y-1 overflow-y-auto">
-              {(contactsData?.items ?? []).map((contact) => (
+              {availableContacts.map((contact) => (
                 <li key={contact.id}>
                   <label className="flex items-center gap-2 rounded-[12px] px-2 py-1 text-sm hover:bg-[#f5f6f8]">
                     <input
