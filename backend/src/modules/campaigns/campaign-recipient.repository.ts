@@ -9,7 +9,7 @@ export type CampaignRecipientWithContact = CampaignRecipient & {
 };
 
 /** Brevo send API and webhooks may differ on angle brackets around the message id. */
-function normalizeProviderMessageId(messageId: string): string {
+export function normalizeProviderMessageId(messageId: string): string {
   const trimmed = messageId.trim();
   if (trimmed.startsWith("<") && trimmed.endsWith(">")) {
     return trimmed.slice(1, -1);

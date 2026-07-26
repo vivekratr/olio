@@ -19,7 +19,7 @@ import type {
 
 export const CAMPAIGNS_KEY = ["campaigns"] as const;
 
-const CAMPAIGN_POLL_MS = 5000;
+const CAMPAIGN_POLL_MS = 3000;
 
 function campaignListNeedsPolling(campaigns: { status: string }[] | undefined) {
   return (

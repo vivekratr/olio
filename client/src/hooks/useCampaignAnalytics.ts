@@ -11,7 +11,7 @@ export function useCampaignAnalytics(campaignId: string) {
       queryKey: ["campaignAnalytics", campaignId],
       queryFn: () => getCampaignAnalytics(campaignId),
       enabled: Boolean(campaignId),
-      refetchInterval: 5000,
+      refetchInterval: 3000,
       retry: false,
     });
 

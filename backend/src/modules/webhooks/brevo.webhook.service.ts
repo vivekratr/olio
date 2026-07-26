@@ -1,6 +1,9 @@
 import { runTransaction } from "../../common/database/base.repository.js";
 import type { Prisma } from "../../generated/prisma/client.js";
-import { CampaignRecipientRepository } from "../campaigns/campaign-recipient.repository.js";
+import {
+  CampaignRecipientRepository,
+  normalizeProviderMessageId,
+} from "../campaigns/campaign-recipient.repository.js";
 import { CampaignEventRepository } from "./campaign-event.repository.js";
 import {
   mapBrevoEvent,
@@ -19,7 +22,8 @@ export class BrevoWebhookService {
       return;
     }
 
-    const providerEventId = String(payload.id);
+    // Brevo reuses payload.id across different messages; scope by message + event.
+    const providerEventId = `${normalizeProviderMessageId(payload["message-id"])}:${payload.event}`;
     if (await this.campaignEventRepository.exists(providerEventId)) {
       return;
     }

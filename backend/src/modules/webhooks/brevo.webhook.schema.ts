@@ -14,6 +14,9 @@ const SUPPORTED_EVENTS: Record<string, string> = {
   opened: "opened",
   hard_bounce: "bounced",
   soft_bounce: "bounced",
+  blocked: "bounced",
+  invalid_email: "bounced",
+  error: "bounced",
 };
 
 export function mapBrevoEvent(event: string): string | null {
