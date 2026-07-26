@@ -80,8 +80,11 @@ export class TagRepository extends BaseRepository {
       return [];
     }
 
-    return this.prisma.tag.createManyAndReturn({
+    await this.prisma.tag.createMany({
       data: names.map((name) => ({ accountId, name })),
+      skipDuplicates: true,
     });
+
+    return this.findManyByNames(accountId, names);
   }
 }

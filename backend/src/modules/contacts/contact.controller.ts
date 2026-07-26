@@ -173,23 +173,28 @@ async function applyCsvRowTags(
   rows: ImportRow[],
   tagService: TagService,
 ): Promise<void> {
+  const allTagNames = rows.flatMap((row) => row.tags ?? []);
+  const tagByName = new Map(
+    (await tagService.findOrCreateByNames(accountId, allTagNames)).map(
+      (tag) => [tag.name, tag.id] as const,
+    ),
+  );
+
   await Promise.all(
     importedIds.map(async (contactId, index) => {
-      const tagNames = rows[index]?.tags ?? [];
-      if (tagNames.length === 0) {
+      const tagIds = [
+        ...new Set(
+          (rows[index]?.tags ?? [])
+            .map((name) => tagByName.get(name))
+            .filter((id): id is string => id !== undefined),
+        ),
+      ];
+
+      if (tagIds.length === 0) {
         return;
       }
 
-      const tags = await tagService.findOrCreateByNames(accountId, tagNames);
-      if (tags.length === 0) {
-        return;
-      }
-
-      await tagService.assignTags(
-        accountId,
-        contactId,
-        tags.map((tag) => tag.id),
-      );
+      await tagService.assignTags(accountId, contactId, tagIds);
     }),
   );
 }
