@@ -20,10 +20,42 @@ import {
   campaignFormSchema,
 } from "@/schemas/campaign.schema";
 import type { Audience } from "@/types/audience.types";
-import type { Campaign, CampaignFormValues, PreviewRecipientsResponse } from "@/types/campaign.types";
+import type { Campaign, CampaignFormValues, PreviewRecipientsResponse, RecipientMode } from "@/types/campaign.types";
 import type { Tag } from "@/types/tag.types";
 
 type EditorTab = "compose" | "preview";
+
+const UNMATCHED_REASON =
+  "Contact not found. This address will not receive the campaign.";
+
+function formatMatchedContact(
+  contact: PreviewRecipientsResponse["matched"][number],
+): string {
+  const handle = contact.email || contact.phone || contact.id;
+  return contact.name ? `${contact.name} <${handle}>` : handle;
+}
+
+function recipientConfirmMessage(
+  mode: RecipientMode,
+  preview: PreviewRecipientsResponse | null,
+  action: "send" | "schedule",
+): string {
+  if (mode !== "paste" || !preview) {
+    return action === "send"
+      ? "This will queue the campaign for immediate delivery to all matched recipients."
+      : "";
+  }
+
+  const { totalMatched, totalUnmatched } = preview;
+  const matchedLabel = `${totalMatched} matched contact${totalMatched === 1 ? "" : "s"}`;
+  let message = `Campaign will be ${action === "send" ? "sent to" : "scheduled for"} ${matchedLabel}.`;
+
+  if (totalUnmatched > 0) {
+    message += ` ${totalUnmatched} unmatched entr${totalUnmatched === 1 ? "y" : "ies"} will be ignored.`;
+  }
+
+  return message;
+}
 
 function toPreviewSrcDoc(html: string): string {
   const body = html.trim() || "<p></p>";
@@ -227,6 +259,16 @@ export function CampaignForm({
 
   const disabled = readOnly || saving || sending || scheduling || isSubmitting;
   const showActions = !readOnly && campaign?.status !== "scheduled";
+  const sendRecipientNote = recipientConfirmMessage(
+    recipientMode,
+    pastePreview,
+    "send",
+  );
+  const scheduleRecipientNote = recipientConfirmMessage(
+    recipientMode,
+    pastePreview,
+    "schedule",
+  );
 
   return (
     <form className="space-y-8" onSubmit={handleSaveDraft} noValidate>
@@ -409,39 +451,46 @@ export function CampaignForm({
                     <p className="mt-2 text-sm text-[#e44258]">{pastePreviewError}</p>
                   ) : pastePreview ? (
                     <div className="mt-2 space-y-3 text-sm">
-                      <p className="text-[#535768]">
-                        {pastePreview.totalMatched} matched
-                        {pastePreview.totalUnmatched > 0
-                          ? `, ${pastePreview.totalUnmatched} unmatched`
-                          : ""}
-                      </p>
-                      {pastePreview.matched.length > 0 ? (
-                        <ul className="space-y-1 text-[#333333]">
-                          {pastePreview.matched.slice(0, 8).map((contact) => (
-                            <li key={contact.id}>
-                              {contact.name || contact.email || contact.phone}
-                            </li>
-                          ))}
-                          {pastePreview.matched.length > 8 ? (
-                            <li className="text-[#535768]">
-                              +{pastePreview.matched.length - 8} more matched
-                            </li>
-                          ) : null}
-                        </ul>
-                      ) : null}
-                      {pastePreview.unmatched.length > 0 ? (
-                        <div>
-                          <p className="font-medium text-[#e44258]">Unmatched</p>
-                          <ul className="mt-1 space-y-1 text-[#e44258]">
-                            {pastePreview.unmatched.slice(0, 8).map((value) => (
-                              <li key={value}>{value}</li>
-                            ))}
-                            {pastePreview.unmatched.length > 8 ? (
-                              <li>+{pastePreview.unmatched.length - 8} more</li>
-                            ) : null}
-                          </ul>
-                        </div>
-                      ) : null}
+                      <div className="space-y-1 text-[#535768]">
+                        <p>
+                          Matched contacts:{" "}
+                          <span className="font-medium text-[#333333]">
+                            {pastePreview.totalMatched}
+                          </span>
+                        </p>
+                        <p>
+                          Unmatched entries:{" "}
+                          <span className="font-medium text-[#333333]">
+                            {pastePreview.totalUnmatched}
+                          </span>
+                        </p>
+                      </div>
+                      <ul className="space-y-2">
+                        {pastePreview.matched.slice(0, 8).map((contact) => (
+                          <li key={contact.id} className="text-[#333333]">
+                            <span aria-hidden className="text-[#2a5c4e]">
+                              ✓{" "}
+                            </span>
+                            {formatMatchedContact(contact)}
+                          </li>
+                        ))}
+                        {pastePreview.matched.length > 8 ? (
+                          <li className="text-[#535768]">
+                            +{pastePreview.matched.length - 8} more matched
+                          </li>
+                        ) : null}
+                        {pastePreview.unmatched.slice(0, 8).map((value) => (
+                          <li key={value} className="text-[#e44258]">
+                            <span aria-hidden>✗ </span>
+                            {value} — {UNMATCHED_REASON}
+                          </li>
+                        ))}
+                        {pastePreview.unmatched.length > 8 ? (
+                          <li className="text-[#e44258]">
+                            +{pastePreview.unmatched.length - 8} more unmatched
+                          </li>
+                        ) : null}
+                      </ul>
                     </div>
                   ) : (
                     <p className="mt-2 text-sm text-[#535768]">
@@ -548,7 +597,7 @@ export function CampaignForm({
       <ConfirmDialog
         open={sendOpen}
         title="Send campaign now?"
-        description="This will queue the campaign for immediate delivery to all matched recipients."
+        description={sendRecipientNote}
         confirmLabel="Send now"
         loading={sending}
         onConfirm={confirmSend}
@@ -572,6 +621,9 @@ export function CampaignForm({
           <p className="mt-2 text-sm text-[#535768]">
             Pick a future date and time. Sends are queued and survive server restarts.
           </p>
+          {scheduleRecipientNote ? (
+            <p className="mt-2 text-sm text-[#535768]">{scheduleRecipientNote}</p>
+          ) : null}
         </DialogHeader>
         <label htmlFor="schedule-at" className="mt-6 block text-sm font-medium">
           Send at
