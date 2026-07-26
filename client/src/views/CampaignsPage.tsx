@@ -4,16 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { DuplicateCampaignDialog } from "@/components/campaigns/DuplicateCampaignDialog";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
 import { TableSkeleton } from "@/components/ui/skeletons/TableSkeleton";
+import { useAudiences } from "@/hooks/useAudiences";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useTags } from "@/hooks/useTags";
 import { formatScheduledAt } from "@/lib/campaign-fields";
 import { useToast } from "@/providers/ToastProvider";
-import type { Campaign, CampaignStatus } from "@/types/campaign.types";
+import type { Campaign, CampaignStatus, CreateCampaignInput } from "@/types/campaign.types";
 
 const STATUS_STYLES: Record<
   CampaignStatus,
@@ -59,9 +62,11 @@ function TableSkeletonLoader() {
 function CampaignRow({
   campaign,
   onDelete,
+  onDuplicate,
 }: {
   campaign: Campaign;
   onDelete: (campaign: Campaign) => void;
+  onDuplicate: (campaign: Campaign) => void;
 }) {
   const isDraft = campaign.status === "draft";
   const canAnalytics =
@@ -87,6 +92,9 @@ function CampaignRow({
       </td>
       <td className="px-4 py-4">
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => onDuplicate(campaign)}>
+            Duplicate
+          </Button>
           {isDraft ? (
             <>
               <Link href={`/campaigns/${campaign.id}`}>
@@ -115,19 +123,92 @@ function CampaignRow({
 export function CampaignsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { audiences } = useAudiences();
+  const { tags } = useTags();
   const {
     campaigns,
     loading,
     error,
     refetch,
     isFetching,
+    createCampaign,
+    sendCampaign,
+    scheduleCampaign,
     deleteCampaign,
+    creating,
+    sending,
+    scheduling,
     deleting,
   } = useCampaigns();
 
   const [deletingCampaign, setDeletingCampaign] = useState<Campaign | null>(
     null,
   );
+  const [duplicatingCampaign, setDuplicatingCampaign] = useState<Campaign | null>(
+    null,
+  );
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+
+  const closeDuplicate = () => {
+    setDuplicatingCampaign(null);
+    setDuplicateError(null);
+  };
+
+  const handleDuplicateSaveDraft = async (input: CreateCampaignInput) => {
+    setDuplicateError(null);
+    try {
+      const created = await createCampaign(input);
+      closeDuplicate();
+      toast("Draft created from duplicate", "success");
+      router.push(`/campaigns/${created.id}`);
+    } catch (saveError) {
+      setDuplicateError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save duplicate.",
+      );
+      throw saveError;
+    }
+  };
+
+  const handleDuplicateSendNow = async (input: CreateCampaignInput) => {
+    setDuplicateError(null);
+    try {
+      const created = await createCampaign(input);
+      await sendCampaign(created.id);
+      closeDuplicate();
+      toast("Campaign queued for sending", "success");
+      router.push(`/campaigns/${created.id}/analytics`);
+    } catch (sendError) {
+      setDuplicateError(
+        sendError instanceof Error
+          ? sendError.message
+          : "Could not send duplicate.",
+      );
+      throw sendError;
+    }
+  };
+
+  const handleDuplicateSchedule = async (
+    input: CreateCampaignInput,
+    scheduledAt: string,
+  ) => {
+    setDuplicateError(null);
+    try {
+      const created = await createCampaign(input);
+      await scheduleCampaign({ id: created.id, input: { scheduledAt } });
+      closeDuplicate();
+      toast("Campaign scheduled", "success");
+      router.push("/campaigns");
+    } catch (scheduleError) {
+      setDuplicateError(
+        scheduleError instanceof Error
+          ? scheduleError.message
+          : "Could not schedule duplicate.",
+      );
+      throw scheduleError;
+    }
+  };
 
   const handleDelete = async () => {
     if (!deletingCampaign) {
@@ -201,6 +282,7 @@ export function CampaignsPage() {
                     key={campaign.id}
                     campaign={campaign}
                     onDelete={setDeletingCampaign}
+                    onDuplicate={setDuplicatingCampaign}
                   />
                 ))}
               </tbody>
@@ -208,6 +290,21 @@ export function CampaignsPage() {
           </div>
         </div>
       )}
+
+      <DuplicateCampaignDialog
+        open={Boolean(duplicatingCampaign)}
+        source={duplicatingCampaign}
+        audiences={audiences}
+        tags={tags}
+        saving={creating}
+        sending={sending}
+        scheduling={scheduling}
+        apiError={duplicateError}
+        onClose={closeDuplicate}
+        onSaveDraft={handleDuplicateSaveDraft}
+        onSendNow={handleDuplicateSendNow}
+        onSchedule={handleDuplicateSchedule}
+      />
 
       <ConfirmDialog
         open={Boolean(deletingCampaign)}

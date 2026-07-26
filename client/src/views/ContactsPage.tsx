@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ContactForm } from "@/components/contacts/ContactForm";
 import { CsvImportDialog } from "@/components/contacts/CsvImportDialog";
 import { Button } from "@/components/ui/Button";
+import { DialogHeader } from "@/components/ui/DialogHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
@@ -20,7 +21,7 @@ import type { Contact, CreateContactInput } from "@/types/contact.types";
 
 const PAGE_SIZE = 20;
 
-function TagPills({ tags }: { tags: string[] }) {
+function TagPills({ tags = [] }: { tags?: string[] }) {
   if (tags.length === 0) {
     return <span className="text-[#535768]">—</span>;
   }
@@ -94,9 +95,12 @@ function ContactEditorDialog({
       }}
       onClose={onClose}
     >
-      <h2 id={titleId} className="text-xl font-medium">
-        {title}
-      </h2>
+      <DialogHeader
+        title={title}
+        titleId={titleId}
+        onClose={onClose}
+        disabled={loading}
+      />
       <div className="mt-6">
         <ContactForm
           contact={contact}
@@ -172,13 +176,17 @@ function BulkTagDialog({
         }
       }}
     >
-      <h2 id={titleId} className="text-xl font-medium">
-        {mode === "add" ? "Add tags" : "Remove tags"}
-      </h2>
-      <p className="mt-2 text-sm text-[#535768]">
-        Choose one or more tags to {mode === "add" ? "apply to" : "remove from"}{" "}
-        the selected contacts.
-      </p>
+      <DialogHeader
+        title={mode === "add" ? "Add tags" : "Remove tags"}
+        titleId={titleId}
+        onClose={onClose}
+        disabled={loading}
+      >
+        <p className="mt-2 text-sm text-[#535768]">
+          Choose one or more tags to {mode === "add" ? "apply to" : "remove from"}{" "}
+          the selected contacts.
+        </p>
+      </DialogHeader>
 
       {tags.length === 0 ? (
         <p className="mt-4 text-sm text-[#535768]">

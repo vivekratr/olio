@@ -90,8 +90,8 @@ export function contactToFormDefaults(contact?: Contact): {
   }
 
   const tags =
-    contact.tags.length > 0
-      ? contact.tags
+    (contact.tags ?? []).length > 0
+      ? (contact.tags ?? [])
       : parseTags(contact.customFields[TAGS_FIELD]);
 
   const { dynamicFields } = splitCustomFields(contact.customFields);

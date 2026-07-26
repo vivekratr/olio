@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DialogHeader } from "@/components/ui/DialogHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
@@ -82,7 +83,7 @@ function TagFormDialog({
       }}
       onClose={onClose}
     >
-      <h2 className="text-xl font-medium">{title}</h2>
+      <DialogHeader title={title} onClose={onClose} disabled={loading || isSubmitting} />
       <form
         className="mt-6 space-y-4"
         onSubmit={handleSubmit(async (data) => onSubmit(data.name))}
@@ -232,9 +233,11 @@ function TagContactsDialog({
       }}
       onClose={onClose}
     >
-      <h2 className="text-xl font-medium">
-        Manage contacts for {tag?.name ?? "tag"}
-      </h2>
+      <DialogHeader
+        title={`Manage contacts for ${tag?.name ?? "tag"}`}
+        onClose={onClose}
+        disabled={assigning || removing}
+      />
 
       <div className="mt-6 space-y-6">
         <div>

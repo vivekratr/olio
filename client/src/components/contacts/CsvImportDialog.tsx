@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { DialogHeader } from "@/components/ui/DialogHeader";
 import type { ImportContactsOptions, ImportSummary } from "@/types/contact.types";
 import type { Tag } from "@/types/tag.types";
 
@@ -157,12 +158,16 @@ export function CsvImportDialog({
       }}
       onClose={handleClose}
     >
-      <h2 id={titleId} className="text-xl font-medium">
-        Import contacts from CSV
-      </h2>
-      <p className="mt-2 text-sm text-[#535768]">
-        Required columns: name, email, phone, city, tags.
-      </p>
+      <DialogHeader
+        title="Import contacts from CSV"
+        titleId={titleId}
+        onClose={handleClose}
+        disabled={loading}
+      >
+        <p className="mt-2 text-sm text-[#535768]">
+          Required columns: name, email, phone, city, tags.
+        </p>
+      </DialogHeader>
 
       <div className="mt-6 space-y-5">
         <div>

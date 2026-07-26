@@ -9,6 +9,13 @@ import type {
   UpdateContactInput,
 } from "@/types/contact.types";
 
+export function normalizeContact(contact: Contact): Contact {
+  return {
+    ...contact,
+    tags: contact.tags ?? [],
+  };
+}
+
 function toQueryString(params: ListContactsParams): string {
   const search = new URLSearchParams();
 
@@ -35,22 +42,27 @@ function toQueryString(params: ListContactsParams): string {
 export function listContacts(
   params: ListContactsParams = {},
 ): Promise<ContactListResponse> {
-  return apiGet<ContactListResponse>(`/contacts${toQueryString(params)}`);
+  return apiGet<ContactListResponse>(`/contacts${toQueryString(params)}`).then(
+    (response) => ({
+      ...response,
+      items: response.items.map(normalizeContact),
+    }),
+  );
 }
 
 export function createContact(input: CreateContactInput): Promise<Contact> {
-  return apiPost<Contact>("/contacts", input);
+  return apiPost<Contact>("/contacts", input).then(normalizeContact);
 }
 
 export function updateContact(
   id: string,
   input: UpdateContactInput,
 ): Promise<Contact> {
-  return apiPut<Contact>(`/contacts/${id}`, input);
+  return apiPut<Contact>(`/contacts/${id}`, input).then(normalizeContact);
 }
 
 export function deleteContact(id: string): Promise<Contact> {
-  return apiDelete<Contact>(`/contacts/${id}`);
+  return apiDelete<Contact>(`/contacts/${id}`).then(normalizeContact);
 }
 
 export function importContactsCsv({

@@ -26,17 +26,20 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="rounded-[16px] border border-[#d0d4e4] p-5 transition-colors hover:border-[#6161ff]"
+      className="group rounded-[16px] border border-[#d0d4e4] p-5 transition-colors hover:border-[#6161ff]"
       style={{ backgroundColor: tint }}
     >
       <p className="text-sm font-medium text-[#535768]">{label}</p>
       {loading ? (
         <Skeleton className="mt-2 h-8 w-12" />
       ) : (
-        <p className="mt-1 text-2xl font-light tracking-[-0.02em] text-[#333333]">
+        <p className="mt-1 text-3xl font-light tracking-[-0.02em] text-[#333333]">
           {value}
         </p>
       )}
+      <p className="mt-3 text-xs font-medium text-[#6161ff] opacity-0 transition-opacity group-hover:opacity-100 motion-reduce:transition-none">
+        Open {label.toLowerCase()} →
+      </p>
     </Link>
   );
 }
@@ -59,13 +62,18 @@ export function HomePage() {
 
   return (
     <PageLayout eyebrow="Dashboard" title="Welcome to Olio">
-      <div className="space-y-8">
-        <GettingStarted />
-
-        <div>
-          <h2 className="mb-4 text-sm font-medium text-[#535768]">
-            Workspace overview
-          </h2>
+      <div className="space-y-6">
+        <section aria-label="Workspace overview">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-medium text-[#333333]">
+                Workspace overview
+              </h2>
+              <p className="mt-1 text-sm text-[#535768]">
+                Your contacts, audiences, and campaigns at a glance.
+              </p>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Contacts"
@@ -96,24 +104,21 @@ export function HomePage() {
               loading={campaignsLoading}
             />
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-[24px] border border-[#d0d4e4] bg-white p-6 shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]">
-          <h2 className="text-sm font-medium text-[#333333]">Quick tips</h2>
-          <ul className="mt-3 space-y-2 text-sm text-[#535768]">
-            <li>
-              Import contacts from CSV — duplicates are skipped automatically.
-            </li>
-            <li>
-              Audiences update dynamically when contacts match your filter
-              rules.
-            </li>
-            <li>
-              Open a campaign&apos;s analytics page to watch metrics refresh
-              every few seconds.
-            </li>
-          </ul>
-        </div>
+        <GettingStarted />
+
+        <section
+          aria-label="Quick tips"
+          className="rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] px-5 py-4"
+        >
+          <p className="text-sm text-[#535768]">
+            <span className="font-medium text-[#333333]">Tip:</span> Import
+            contacts from CSV — duplicates skip automatically. Audiences update
+            when contacts match your filters. Campaign analytics refresh every
+            few seconds after send.
+          </p>
+        </section>
       </div>
     </PageLayout>
   );

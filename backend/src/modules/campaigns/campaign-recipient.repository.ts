@@ -8,6 +8,15 @@ export type CampaignRecipientWithContact = CampaignRecipient & {
   contact: Contact;
 };
 
+/** Brevo send API and webhooks may differ on angle brackets around the message id. */
+function normalizeProviderMessageId(messageId: string): string {
+  const trimmed = messageId.trim();
+  if (trimmed.startsWith("<") && trimmed.endsWith(">")) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
 export class CampaignRecipientRepository extends BaseRepository {
   async createMany(
     campaignId: string,
@@ -44,7 +53,10 @@ export class CampaignRecipientRepository extends BaseRepository {
   ): Promise<void> {
     await this.prisma.campaignRecipient.update({
       where: { id: recipientId },
-      data: { status: "sent", providerMessageId },
+      data: {
+        status: "sent",
+        providerMessageId: normalizeProviderMessageId(providerMessageId),
+      },
     });
   }
 
@@ -58,8 +70,14 @@ export class CampaignRecipientRepository extends BaseRepository {
   async findByProviderMessageId(
     providerMessageId: string,
   ): Promise<CampaignRecipient | null> {
+    const normalized = normalizeProviderMessageId(providerMessageId);
     return this.prisma.campaignRecipient.findFirst({
-      where: { providerMessageId },
+      where: {
+        OR: [
+          { providerMessageId: normalized },
+          { providerMessageId: `<${normalized}>` },
+        ],
+      },
     });
   }
 

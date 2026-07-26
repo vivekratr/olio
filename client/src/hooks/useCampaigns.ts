@@ -19,6 +19,17 @@ import type {
 
 export const CAMPAIGNS_KEY = ["campaigns"] as const;
 
+const CAMPAIGN_POLL_MS = 5000;
+
+function campaignListNeedsPolling(campaigns: { status: string }[] | undefined) {
+  return (
+    campaigns?.some(
+      (campaign) =>
+        campaign.status === "scheduled" || campaign.status === "sending",
+    ) ?? false
+  );
+}
+
 export function campaignKey(id: string) {
   return ["campaigns", id] as const;
 }
@@ -29,6 +40,9 @@ export function useCampaigns() {
   const query = useQuery({
     queryKey: CAMPAIGNS_KEY,
     queryFn: listCampaigns,
+    refetchInterval: (query) =>
+      campaignListNeedsPolling(query.state.data) ? CAMPAIGN_POLL_MS : false,
+    retry: false,
   });
 
   const invalidateList = () =>
@@ -110,6 +124,12 @@ export function useCampaign(id: string | undefined) {
     queryKey: campaignKey(id ?? ""),
     queryFn: () => getCampaign(id!),
     enabled: Boolean(id),
+    refetchInterval: (query) =>
+      query.state.data?.status === "scheduled" ||
+      query.state.data?.status === "sending"
+        ? CAMPAIGN_POLL_MS
+        : false,
+    retry: false,
   });
 
   return {

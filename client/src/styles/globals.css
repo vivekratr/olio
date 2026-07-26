@@ -1,5 +1,15 @@
 /* Shared design tokens and accessibility utilities */
 
+dialog:modal {
+  inset: unset;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  margin: 0;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+
 :root {
   --focus-ring: 0 0 0 3px rgba(97, 97, 255, 0.35);
 }

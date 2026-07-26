@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { normalizeContact } from "@/services/contact.service";
 import type { Contact } from "@/types/contact.types";
 import type {
   CreateTagInput,
@@ -27,7 +28,9 @@ export function addContactsToTag(
   tagId: string,
   input: TagContactsInput,
 ): Promise<Contact[]> {
-  return apiPost<Contact[]>(`/tags/${tagId}/contacts`, input);
+  return apiPost<Contact[]>(`/tags/${tagId}/contacts`, input).then((contacts) =>
+    contacts.map(normalizeContact),
+  );
 }
 
 export function removeContactFromTag(
@@ -43,5 +46,5 @@ export function previewContactsByTag(tagName: string): Promise<Contact[]> {
       match: "all",
       rules: [{ field: "tag", operator: "eq", value: tagName }],
     },
-  });
+  }).then((contacts) => contacts.map(normalizeContact));
 }

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { AudienceBuilder } from "@/components/audiences/AudienceBuilder";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DialogHeader } from "@/components/ui/DialogHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
@@ -104,7 +105,7 @@ function AudienceEditorDialog({
       }}
       onClose={onClose}
     >
-      <h2 className="text-xl font-medium">{title}</h2>
+      <DialogHeader title={title} onClose={onClose} disabled={loading || isSubmitting} />
       <form className="mt-6 space-y-6" onSubmit={onFormSubmit} noValidate>
         <div>
           <label htmlFor="audience-name" className="mb-2 block text-sm font-medium">

@@ -1,3 +1,5 @@
+"use client";
+
 import { ProtectedRoute } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
 

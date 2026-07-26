@@ -3,6 +3,16 @@ import type { Campaign, CampaignFormValues, CreateCampaignInput } from "@/types/
 export const inputClassName =
   "w-full rounded-[16px] border border-[#d0d4e4] bg-white px-4 py-3 text-[#333333] outline-none transition-colors focus:border-[#6161ff]";
 
+export function campaignAsDuplicate(source: Campaign): Campaign {
+  return {
+    ...source,
+    id: "",
+    name: `${source.name} (copy)`,
+    status: "draft",
+    scheduledAt: null,
+  };
+}
+
 export function campaignToFormDefaults(campaign?: Campaign): CampaignFormValues {
   return {
     name: campaign?.name ?? "",

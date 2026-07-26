@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,30 +45,43 @@ function applyAuthSuccess(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const hasToken = Boolean(getAccessToken());
+  const [tokenChecked, setTokenChecked] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    setHasToken(Boolean(getAccessToken()));
+    setTokenChecked(true);
+  }, []);
 
   const { data: user, isPending, isError } = useQuery({
     queryKey: AUTH_USER_KEY,
     queryFn: getCurrentUser,
-    enabled: hasToken,
+    enabled: tokenChecked && hasToken,
     retry: false,
   });
 
   useEffect(() => {
     if (isError) {
       clearAccessToken();
+      setHasToken(false);
       queryClient.removeQueries({ queryKey: AUTH_USER_KEY });
     }
   }, [isError, queryClient]);
 
   const loginMutation = useMutation({
     mutationFn: loginRequest,
-    onSuccess: (response) => applyAuthSuccess(queryClient, response),
+    onSuccess: (response) => {
+      applyAuthSuccess(queryClient, response);
+      setHasToken(true);
+    },
   });
 
   const registerMutation = useMutation({
     mutationFn: registerRequest,
-    onSuccess: (response) => applyAuthSuccess(queryClient, response),
+    onSuccess: (response) => {
+      applyAuthSuccess(queryClient, response);
+      setHasToken(true);
+    },
   });
 
   const login = useCallback(
@@ -86,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearAccessToken();
+    setHasToken(false);
     queryClient.setQueryData(AUTH_USER_KEY, null);
     queryClient.removeQueries({ queryKey: AUTH_USER_KEY });
     router.replace("/login");
@@ -94,13 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user: user ?? null,
-      isLoading: hasToken && isPending,
-      isAuthenticated: Boolean(user) && hasToken,
+      isLoading: !tokenChecked || (hasToken && isPending),
+      isAuthenticated: tokenChecked && Boolean(user) && hasToken,
       login,
       register,
       logout,
     }),
-    [user, hasToken, isPending, login, register, logout],
+    [user, hasToken, tokenChecked, isPending, login, register, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

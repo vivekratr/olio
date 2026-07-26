@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DialogHeader } from "@/components/ui/DialogHeader";
 import {
   campaignToFormDefaults,
   defaultScheduleValue,
@@ -23,6 +24,14 @@ import type { Campaign, CampaignFormValues, PreviewRecipientsResponse } from "@/
 import type { Tag } from "@/types/tag.types";
 
 type EditorTab = "compose" | "preview";
+
+function toPreviewSrcDoc(html: string): string {
+  const body = html.trim() || "<p></p>";
+  if (/^\s*<(!DOCTYPE|html)/i.test(body)) {
+    return body;
+  }
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:24px;}</style></head><body>${body}</body></html>`;
+}
 
 interface CampaignFormProps {
   campaign?: Campaign;
@@ -193,6 +202,11 @@ export function CampaignForm({
       return;
     }
 
+    if (!scheduleAt.trim()) {
+      setActionError("Pick a schedule time.");
+      return;
+    }
+
     const scheduledDate = new Date(scheduleAt);
     if (Number.isNaN(scheduledDate.getTime())) {
       setActionError("Pick a valid schedule time.");
@@ -216,8 +230,8 @@ export function CampaignForm({
 
   return (
     <form className="space-y-8" onSubmit={handleSaveDraft} noValidate>
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section className="space-y-5 rounded-[24px] border border-[#d0d4e4] bg-white p-6 shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px] motion-safe:animate-[fadeUp_0.45s_ease-out]">
+      <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section className="min-w-0 space-y-5 rounded-[24px] border border-[#d0d4e4] bg-white p-6 shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px] motion-safe:animate-[fadeUp_0.45s_ease-out]">
           <div>
             <label htmlFor="campaign-name" className="mb-2 block text-sm font-medium">
               Campaign name
@@ -440,7 +454,7 @@ export function CampaignForm({
           </fieldset>
         </section>
 
-        <section className="space-y-4 motion-safe:animate-[fadeUp_0.55s_ease-out]">
+        <section className="min-w-0 space-y-4 motion-safe:animate-[fadeUp_0.55s_ease-out]">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium uppercase tracking-[0.12em] text-[#535768]">
               Email content
@@ -478,9 +492,11 @@ export function CampaignForm({
               {...register("bodyHtml")}
             />
           ) : (
-            <div
-              className="min-h-[420px] overflow-auto rounded-[24px] border border-[#d0d4e4] bg-white p-6 shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]"
-              dangerouslySetInnerHTML={{ __html: bodyHtml || "<p></p>" }}
+            <iframe
+              title="Email preview"
+              className="min-h-[420px] w-full min-w-0 rounded-[24px] border border-[#d0d4e4] bg-white shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]"
+              sandbox=""
+              srcDoc={toPreviewSrcDoc(bodyHtml ?? "")}
             />
           )}
           {errors.bodyHtml ? (
@@ -548,16 +564,22 @@ export function CampaignForm({
         }}
         onClose={() => setScheduleOpen(false)}
       >
-        <h2 className="text-xl font-medium">Schedule campaign</h2>
-        <p className="mt-2 text-sm text-[#535768]">
-          Pick a future date and time. Sends are queued and survive server restarts.
-        </p>
+        <DialogHeader
+          title="Schedule campaign"
+          onClose={() => setScheduleOpen(false)}
+          disabled={scheduling}
+        >
+          <p className="mt-2 text-sm text-[#535768]">
+            Pick a future date and time. Sends are queued and survive server restarts.
+          </p>
+        </DialogHeader>
         <label htmlFor="schedule-at" className="mt-6 block text-sm font-medium">
           Send at
         </label>
         <input
           id="schedule-at"
           type="datetime-local"
+          required
           className={`${inputClassName} mt-2`}
           value={scheduleAt}
           min={toLocalDatetimeValue(new Date())}
