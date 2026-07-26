@@ -23,7 +23,11 @@ export class AudienceService {
 
   async listAudiences(accountId: string): Promise<AudienceResponse[]> {
     const audiences = await this.audienceRepository.list(accountId);
-    return audiences.map((audience) => this.toAudienceResponse(audience));
+    return Promise.all(
+      audiences.map((audience) =>
+        this.toAudienceResponseWithCount(accountId, audience),
+      ),
+    );
   }
 
   async getAudience(
@@ -38,7 +42,7 @@ export class AudienceService {
       throw new AppError(AUDIENCE_NOT_FOUND_MESSAGE, 404);
     }
 
-    return this.toAudienceResponse(audience);
+    return this.toAudienceResponseWithCount(accountId, audience);
   }
 
   async createAudience(
@@ -46,7 +50,7 @@ export class AudienceService {
     input: CreateAudienceInput,
   ): Promise<AudienceResponse> {
     const audience = await this.audienceRepository.create(accountId, input);
-    return this.toAudienceResponse(audience);
+    return this.toAudienceResponseWithCount(accountId, audience);
   }
 
   async updateAudience(
@@ -63,7 +67,7 @@ export class AudienceService {
       throw new AppError(AUDIENCE_NOT_FOUND_MESSAGE, 404);
     }
 
-    return this.toAudienceResponse(audience);
+    return this.toAudienceResponseWithCount(accountId, audience);
   }
 
   async deleteAudience(
@@ -78,7 +82,7 @@ export class AudienceService {
       throw new AppError(AUDIENCE_NOT_FOUND_MESSAGE, 404);
     }
 
-    return this.toAudienceResponse(audience);
+    return this.toAudienceResponseWithCount(accountId, audience);
   }
 
   async previewByFilter(
@@ -141,11 +145,15 @@ export class AudienceService {
     return this.queryBuilder.build(audience.filter as unknown as AudienceFilter);
   }
 
-  private toAudienceResponse(audience: Audience): AudienceResponse {
+  private async toAudienceResponseWithCount(
+    accountId: string,
+    audience: Audience,
+  ): Promise<AudienceResponse> {
     return {
       id: audience.id,
       name: audience.name,
       filter: audience.filter as unknown as AudienceFilter,
+      memberCount: await this.countAudience(accountId, audience.id),
       createdAt: audience.createdAt.toISOString(),
       updatedAt: audience.updatedAt.toISOString(),
     };

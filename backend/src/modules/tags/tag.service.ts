@@ -56,6 +56,33 @@ export class TagService {
     return this.toTagResponse(tag);
   }
 
+  async findOrCreateByNames(
+    accountId: string,
+    names: string[],
+  ): Promise<TagResponse[]> {
+    const unique = [
+      ...new Set(
+        names
+          .map((name) => name.trim())
+          .filter((name) => name.length > 0 && name.length <= 50),
+      ),
+    ];
+
+    if (unique.length === 0) {
+      return [];
+    }
+
+    const existing = await this.tagRepository.findManyByNames(accountId, unique);
+    const existingNames = new Set(existing.map((tag) => tag.name));
+    const missing = unique.filter((name) => !existingNames.has(name));
+    const created =
+      missing.length > 0
+        ? await this.tagRepository.createMany(accountId, missing)
+        : [];
+
+    return [...existing, ...created].map((tag) => this.toTagResponse(tag));
+  }
+
   async addContactsToTag(
     accountId: string,
     tagId: string,

@@ -5,6 +5,7 @@ import type { AnalyticsService } from "../analytics/analytics.service.js";
 import type { CampaignService } from "./campaign.service.js";
 import type {
   CreateCampaignInput,
+  PreviewRecipientsRequest,
   ScheduleCampaignInput,
   UpdateCampaignInput,
 } from "./campaign.types.js";
@@ -77,6 +78,16 @@ export class CampaignController {
         req.params.id as string,
       );
       successResponse(res, data, "Campaign analytics retrieved successfully");
+    },
+  );
+
+  previewRecipients: RequestHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      const data = await this.campaignService.previewRecipientsInput(
+        req.user.accountId,
+        req.body as PreviewRecipientsRequest,
+      );
+      successResponse(res, data, "Recipients previewed successfully");
     },
   );
 }

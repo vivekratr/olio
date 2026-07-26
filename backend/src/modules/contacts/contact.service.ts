@@ -1,8 +1,10 @@
 import { AppError } from "../../common/errors/app-error.js";
 import { runTransaction } from "../../common/database/base.repository.js";
-import type { Contact } from "../../generated/prisma/client.js";
 import type { ParsedCsvRow } from "./csv.service.js";
-import { ContactRepository } from "./contact.repository.js";
+import {
+  ContactRepository,
+  type ContactWithTags,
+} from "./contact.repository.js";
 import type { ListContactsQuery } from "./contact.schema.js";
 import type {
   ContactListResponse,
@@ -367,12 +369,17 @@ export class ContactService {
     }
   }
 
-  private toContactResponse(contact: Contact): ContactResponse {
+  private toContactResponse(contact: ContactWithTags): ContactResponse {
+    const tags = contact.contactTags
+      .map((contactTag) => contactTag.tag.name)
+      .sort((left, right) => left.localeCompare(right));
+
     return {
       id: contact.id,
       name: contact.name,
       email: contact.email,
       phone: contact.phone,
+      tags,
       customFields: contact.customFields as Record<string, unknown>,
       createdAt: contact.createdAt.toISOString(),
       updatedAt: contact.updatedAt.toISOString(),

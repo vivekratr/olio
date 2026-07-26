@@ -19,7 +19,6 @@ import {
   summarizeFilter,
   type BuilderRule,
 } from "@/lib/audience-filter";
-import { previewAudience } from "@/services/audience.service";
 import {
   audienceNameSchema,
   type AudienceNameFormValues,
@@ -30,30 +29,8 @@ import type { Audience, AudienceMatch } from "@/types/audience.types";
 const inputClassName =
   "w-full rounded-[16px] border border-[#d0d4e4] bg-white px-4 py-3 text-[#333333] outline-none transition-colors focus:border-[#6161ff]";
 
-const PREVIEW_LIMIT = 50;
-
 function TableSkeletonLoader() {
   return <TableSkeleton rows={5} columns={4} label="Loading audiences" />;
-}
-
-function MemberCount({ audienceId }: { audienceId: string }) {
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    previewAudience({ audienceId })
-      .then((contacts) => setCount(contacts.length))
-      .catch(() => setCount(null));
-  }, [audienceId]);
-
-  if (count === null) {
-    return <span className="text-[#535768]">—</span>;
-  }
-
-  return (
-    <span>
-      {count}{count >= PREVIEW_LIMIT ? "+" : ""}
-    </span>
-  );
 }
 
 function AudienceEditorDialog({
@@ -299,7 +276,7 @@ export function AudiencesPage() {
                     {summarizeFilter(audience.filter)}
                   </td>
                   <td className="px-4 py-3 text-[#535768]">
-                    <MemberCount audienceId={audience.id} />
+                    {audience.memberCount}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">

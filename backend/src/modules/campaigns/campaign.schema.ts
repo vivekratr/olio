@@ -39,3 +39,10 @@ export const updateCampaignSchema = campaignFieldsSchema
 export const scheduleCampaignSchema = z.object({
   scheduledAt: z.string().min(1, "Scheduled time is required"),
 });
+
+export const previewRecipientsSchema = z.object({
+  recipientMode: recipientModeSchema,
+  audienceId: z.string().uuid().optional(),
+  tagId: z.string().uuid().optional(),
+  pasted: z.array(z.string()).optional(),
+});

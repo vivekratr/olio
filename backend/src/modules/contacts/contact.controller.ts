@@ -9,6 +9,7 @@ import type { TagService } from "../tags/tag.service.js";
 import type {
   CreateContactInput,
   ImportRejectedRow,
+  ImportRow,
   UpdateContactInput,
 } from "./contact.types.js";
 
@@ -20,11 +21,17 @@ export class ContactController {
     private readonly tagService: TagService,
   ) {}
   create: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-    const data = await this.contactService.createContact(
-      req.user.accountId,
-      req.body as CreateContactInput,
+    const accountId = req.user.accountId;
+    const input = req.body as CreateContactInput;
+    const data = await this.contactService.createContact(accountId, input);
+    await syncContactTagsFromCustomFields(
+      accountId,
+      data.id,
+      input.customFields,
+      this.tagService,
     );
-    successResponse(res, data, "Contact created successfully", 201);
+    const contact = await this.contactService.getContact(accountId, data.id);
+    successResponse(res, contact, "Contact created successfully", 201);
   });
 
   getById: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -44,12 +51,24 @@ export class ContactController {
   });
 
   update: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
+    const accountId = req.user.accountId;
+    const contactId = req.params.id as string;
+    const input = req.body as UpdateContactInput;
     const data = await this.contactService.updateContact(
-      req.user.accountId,
-      req.params.id as string,
-      req.body as UpdateContactInput,
+      accountId,
+      contactId,
+      input,
     );
-    successResponse(res, data, "Contact updated successfully");
+    if (input.customFields !== undefined) {
+      await syncContactTagsFromCustomFields(
+        accountId,
+        contactId,
+        input.customFields,
+        this.tagService,
+      );
+    }
+    const contact = await this.contactService.getContact(accountId, contactId);
+    successResponse(res, contact, "Contact updated successfully");
   });
 
   delete: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -75,6 +94,13 @@ export class ContactController {
     const importedIds = await this.contactService.executeImport(
       accountId,
       importPlan,
+    );
+
+    await applyCsvRowTags(
+      accountId,
+      importedIds,
+      importPlan.readyToImport,
+      this.tagService,
     );
 
     const tagIds = parseTagIds(req.body.tagIds);
@@ -105,6 +131,67 @@ export class ContactController {
       "Contacts imported successfully",
     );
   });
+}
+
+async function syncContactTagsFromCustomFields(
+  accountId: string,
+  contactId: string,
+  customFields: Record<string, unknown> | undefined,
+  tagService: TagService,
+): Promise<void> {
+  if (!customFields || !("tags" in customFields)) {
+    return;
+  }
+
+  const tagNames = parseTagNames(customFields.tags);
+  const tags = await tagService.findOrCreateByNames(accountId, tagNames);
+  await tagService.replaceTags(
+    accountId,
+    contactId,
+    tags.map((tag) => tag.id),
+  );
+}
+
+function parseTagNames(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map(String).filter(Boolean);
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    return value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+async function applyCsvRowTags(
+  accountId: string,
+  importedIds: string[],
+  rows: ImportRow[],
+  tagService: TagService,
+): Promise<void> {
+  await Promise.all(
+    importedIds.map(async (contactId, index) => {
+      const tagNames = rows[index]?.tags ?? [];
+      if (tagNames.length === 0) {
+        return;
+      }
+
+      const tags = await tagService.findOrCreateByNames(accountId, tagNames);
+      if (tags.length === 0) {
+        return;
+      }
+
+      await tagService.assignTags(
+        accountId,
+        contactId,
+        tags.map((tag) => tag.id),
+      );
+    }),
+  );
 }
 
 function parseTagIds(value: unknown): string[] {

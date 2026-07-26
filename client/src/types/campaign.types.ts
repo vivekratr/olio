@@ -38,6 +38,25 @@ export interface ScheduleCampaignInput {
   scheduledAt: string;
 }
 
+export interface PreviewRecipientsRequest {
+  recipientMode: RecipientMode;
+  audienceId?: string;
+  tagId?: string;
+  pasted?: string[];
+}
+
+export interface PreviewRecipientsResponse {
+  matched: Array<{
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+  }>;
+  unmatched: string[];
+  totalMatched: number;
+  totalUnmatched: number;
+}
+
 export interface CampaignFormValues {
   name: string;
   subject: string;

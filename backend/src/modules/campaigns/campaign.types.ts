@@ -36,6 +36,13 @@ export interface CreateCampaignInput {
 
 export type UpdateCampaignInput = Partial<CreateCampaignInput>;
 
+export interface PreviewRecipientsRequest {
+  recipientMode: RecipientMode;
+  audienceId?: string;
+  tagId?: string;
+  pasted?: string[];
+}
+
 export interface PreviewRecipientsInput {
   audienceId?: string;
   tagId?: string;

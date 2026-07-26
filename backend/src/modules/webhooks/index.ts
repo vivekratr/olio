@@ -6,6 +6,7 @@ import { BrevoWebhookController } from "./brevo.webhook.controller.js";
 import { brevoWebhookSchema } from "./brevo.webhook.schema.js";
 import { BrevoWebhookService } from "./brevo.webhook.service.js";
 import { CampaignEventRepository } from "./campaign-event.repository.js";
+import { verifyBrevoWebhook } from "./verify-brevo.middleware.js";
 
 const campaignEventRepository = new CampaignEventRepository();
 const campaignRecipientRepository = new CampaignRecipientRepository();
@@ -17,6 +18,11 @@ const webhookController = new BrevoWebhookController(webhookService);
 
 const router: Router = Router();
 
-router.post("/brevo", validate(brevoWebhookSchema), webhookController.handle);
+router.post(
+  "/brevo",
+  verifyBrevoWebhook,
+  validate(brevoWebhookSchema),
+  webhookController.handle,
+);
 
 export default router;

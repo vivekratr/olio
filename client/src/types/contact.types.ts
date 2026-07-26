@@ -3,6 +3,7 @@ export interface Contact {
   name: string;
   email: string | null;
   phone: string | null;
+  tags: string[];
   customFields: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;

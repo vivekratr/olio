@@ -13,6 +13,7 @@ import type {
   CampaignStatus,
   CreateCampaignInput,
   PreviewRecipientsInput,
+  PreviewRecipientsRequest,
   PreviewRecipientsResponse,
   RecipientMode,
   RecipientResolutionResult,
@@ -86,6 +87,20 @@ export class CampaignService {
     }
 
     return this.toCampaignResponse(campaign);
+  }
+
+  async previewRecipientsInput(
+    accountId: string,
+    { recipientMode, ...input }: PreviewRecipientsRequest,
+  ): Promise<PreviewRecipientsResponse> {
+    const result = await this.resolveRecipients(accountId, recipientMode, input);
+
+    return {
+      matched: result.matched,
+      unmatched: result.unmatched,
+      totalMatched: result.matched.length,
+      totalUnmatched: result.unmatched.length,
+    };
   }
 
   async previewRecipients(

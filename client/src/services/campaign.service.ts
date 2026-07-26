@@ -2,6 +2,8 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   Campaign,
   CreateCampaignInput,
+  PreviewRecipientsRequest,
+  PreviewRecipientsResponse,
   ScheduleCampaignInput,
   UpdateCampaignInput,
 } from "@/types/campaign.types";
@@ -38,4 +40,10 @@ export function scheduleCampaign(
   input: ScheduleCampaignInput,
 ): Promise<Campaign> {
   return apiPost<Campaign>(`/campaigns/${id}/schedule`, input);
+}
+
+export function previewCampaignRecipients(
+  input: PreviewRecipientsRequest,
+): Promise<PreviewRecipientsResponse> {
+  return apiPost<PreviewRecipientsResponse>("/campaigns/recipients/preview", input);
 }

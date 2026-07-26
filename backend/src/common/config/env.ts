@@ -13,6 +13,7 @@ const envSchema = z.object({
   BREVO_API_KEY: z.string().min(1),
   BREVO_SENDER_EMAIL: z.email(),
   BREVO_SENDER_NAME: z.string().min(1),
+  BREVO_WEBHOOK_TOKEN: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

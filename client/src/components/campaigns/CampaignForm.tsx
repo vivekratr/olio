@@ -13,12 +13,13 @@ import {
   inputClassName,
   toLocalDatetimeValue,
 } from "@/lib/campaign-fields";
+import { previewCampaignRecipients } from "@/services/campaign.service";
 import {
   campaignDraftSchema,
   campaignFormSchema,
 } from "@/schemas/campaign.schema";
 import type { Audience } from "@/types/audience.types";
-import type { Campaign, CampaignFormValues } from "@/types/campaign.types";
+import type { Campaign, CampaignFormValues, PreviewRecipientsResponse } from "@/types/campaign.types";
 import type { Tag } from "@/types/tag.types";
 
 type EditorTab = "compose" | "preview";
@@ -58,6 +59,11 @@ export function CampaignForm({
   const [sendOpen, setSendOpen] = useState(false);
   const [scheduleAt, setScheduleAt] = useState(defaultScheduleValue);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pastePreview, setPastePreview] = useState<PreviewRecipientsResponse | null>(
+    null,
+  );
+  const [pastePreviewLoading, setPastePreviewLoading] = useState(false);
+  const [pastePreviewError, setPastePreviewError] = useState<string | null>(null);
   const scheduleDialogRef = useRef<HTMLDialogElement>(null);
 
   const {
@@ -72,7 +78,48 @@ export function CampaignForm({
   });
 
   const recipientMode = watch("recipientMode");
+  const pastedRecipients = watch("pastedRecipients");
   const bodyHtml = watch("bodyHtml");
+
+  useEffect(() => {
+    if (recipientMode !== "paste") {
+      setPastePreview(null);
+      setPastePreviewError(null);
+      return;
+    }
+
+    const pasted = (pastedRecipients ?? "")
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (pasted.length === 0) {
+      setPastePreview(null);
+      setPastePreviewError(null);
+      return;
+    }
+
+    setPastePreviewLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await previewCampaignRecipients({
+          recipientMode: "paste",
+          pasted,
+        });
+        setPastePreview(result);
+        setPastePreviewError(null);
+      } catch (error) {
+        setPastePreview(null);
+        setPastePreviewError(
+          error instanceof Error ? error.message : "Preview failed.",
+        );
+      } finally {
+        setPastePreviewLoading(false);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [recipientMode, pastedRecipients]);
 
   useEffect(() => {
     reset(campaignToFormDefaults(campaign));
@@ -340,6 +387,54 @@ export function CampaignForm({
                     {errors.pastedRecipients.message}
                   </p>
                 ) : null}
+                <div className="mt-3 rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4">
+                  <p className="text-sm font-medium text-[#333333]">Recipient preview</p>
+                  {pastePreviewLoading ? (
+                    <p className="mt-2 text-sm text-[#535768]">Checking contacts…</p>
+                  ) : pastePreviewError ? (
+                    <p className="mt-2 text-sm text-[#e44258]">{pastePreviewError}</p>
+                  ) : pastePreview ? (
+                    <div className="mt-2 space-y-3 text-sm">
+                      <p className="text-[#535768]">
+                        {pastePreview.totalMatched} matched
+                        {pastePreview.totalUnmatched > 0
+                          ? `, ${pastePreview.totalUnmatched} unmatched`
+                          : ""}
+                      </p>
+                      {pastePreview.matched.length > 0 ? (
+                        <ul className="space-y-1 text-[#333333]">
+                          {pastePreview.matched.slice(0, 8).map((contact) => (
+                            <li key={contact.id}>
+                              {contact.name || contact.email || contact.phone}
+                            </li>
+                          ))}
+                          {pastePreview.matched.length > 8 ? (
+                            <li className="text-[#535768]">
+                              +{pastePreview.matched.length - 8} more matched
+                            </li>
+                          ) : null}
+                        </ul>
+                      ) : null}
+                      {pastePreview.unmatched.length > 0 ? (
+                        <div>
+                          <p className="font-medium text-[#e44258]">Unmatched</p>
+                          <ul className="mt-1 space-y-1 text-[#e44258]">
+                            {pastePreview.unmatched.slice(0, 8).map((value) => (
+                              <li key={value}>{value}</li>
+                            ))}
+                            {pastePreview.unmatched.length > 8 ? (
+                              <li>+{pastePreview.unmatched.length - 8} more</li>
+                            ) : null}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-[#535768]">
+                      Paste emails or phones to preview matches.
+                    </p>
+                  )}
+                </div>
               </div>
             ) : null}
           </fieldset>

@@ -6,8 +6,25 @@ import type {
   UpdateContactInput,
 } from "./contact.types.js";
 
+const contactWithTagsInclude = {
+  contactTags: {
+    select: {
+      tag: {
+        select: { name: true },
+      },
+    },
+  },
+} satisfies Prisma.ContactInclude;
+
+export type ContactWithTags = Contact & {
+  contactTags: Array<{ tag: { name: string } }>;
+};
+
 export class ContactRepository extends BaseRepository {
-  async create(accountId: string, data: CreateContactInput): Promise<Contact> {
+  async create(
+    accountId: string,
+    data: CreateContactInput,
+  ): Promise<ContactWithTags> {
     return this.prisma.contact.create({
       data: {
         accountId,
@@ -16,6 +33,7 @@ export class ContactRepository extends BaseRepository {
         phone: data.phone ?? null,
         customFields: (data.customFields ?? {}) as Prisma.InputJsonValue,
       },
+      include: contactWithTagsInclude,
     });
   }
 
@@ -41,9 +59,10 @@ export class ContactRepository extends BaseRepository {
   async findById(
     accountId: string,
     contactId: string,
-  ): Promise<Contact | null> {
+  ): Promise<ContactWithTags | null> {
     return this.prisma.contact.findFirst({
       where: { id: contactId, accountId },
+      include: contactWithTagsInclude,
     });
   }
 
@@ -68,7 +87,7 @@ export class ContactRepository extends BaseRepository {
   async list(
     accountId: string,
     options: ListContactsOptions,
-  ): Promise<{ items: Contact[]; total: number }> {
+  ): Promise<{ items: ContactWithTags[]; total: number }> {
     const where: Prisma.ContactWhereInput = { accountId };
 
     if (options.search) {
@@ -96,6 +115,7 @@ export class ContactRepository extends BaseRepository {
         orderBy,
         skip: (options.page - 1) * options.limit,
         take: options.limit,
+        include: contactWithTagsInclude,
       }),
       this.prisma.contact.count({ where }),
     ]);
@@ -107,7 +127,7 @@ export class ContactRepository extends BaseRepository {
     accountId: string,
     contactId: string,
     data: UpdateContactInput,
-  ): Promise<Contact | null> {
+  ): Promise<ContactWithTags | null> {
     const updateData: Prisma.ContactUpdateManyMutationInput = {};
 
     if (data.name !== undefined) {
@@ -138,15 +158,17 @@ export class ContactRepository extends BaseRepository {
   async delete(
     accountId: string,
     contactId: string,
-  ): Promise<Contact | null> {
+  ): Promise<ContactWithTags | null> {
     const contact = await this.findById(accountId, contactId);
     if (!contact) {
       return null;
     }
 
-    return this.prisma.contact.delete({
+    await this.prisma.contact.delete({
       where: { id: contactId },
     });
+
+    return contact;
   }
 
   async findByAudienceWhere(

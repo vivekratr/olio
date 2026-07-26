@@ -17,6 +17,7 @@ export interface Audience {
   id: string;
   name: string;
   filter: AudienceFilter;
+  memberCount: number;
   createdAt: string;
   updatedAt: string;
 }

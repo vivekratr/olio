@@ -569,7 +569,7 @@ export function ContactsPage() {
                         {contact.phone || "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <TagPills tags={parseTags(contact.customFields.tags)} />
+                        <TagPills tags={contact.tags} />
                       </td>
                       <td className="px-4 py-3 text-[#535768]">
                         {formatCustomFieldsPreview(contact.customFields)}
