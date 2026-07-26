@@ -10,6 +10,7 @@ export function campaignAsDuplicate(source: Campaign): Campaign {
     name: `${source.name} (copy)`,
     status: "draft",
     scheduledAt: null,
+    attachment: source.attachment,
   };
 }
 
@@ -29,7 +30,7 @@ export function campaignToFormDefaults(campaign?: Campaign): CampaignFormValues 
 
 export function formValuesToInput(
   values: CampaignFormValues,
-  options?: { requireRecipients?: boolean },
+  options?: { requireRecipients?: boolean; copyAttachmentFromId?: string },
 ): CreateCampaignInput {
   const input: CreateCampaignInput = {
     name: values.name.trim(),
@@ -52,6 +53,9 @@ export function formValuesToInput(
     if (pasted.length > 0 || options?.requireRecipients) {
       input.pastedRecipients = pasted;
     }
+  }
+  if (options?.copyAttachmentFromId) {
+    input.copyAttachmentFrom = options.copyAttachmentFromId;
   }
 
   return input;

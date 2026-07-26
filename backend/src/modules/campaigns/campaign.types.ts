@@ -9,6 +9,10 @@ export type CampaignStatus =
 
 export type RecipientMode = "audience" | "tag" | "paste";
 
+export interface CampaignAttachmentMeta {
+  name: string;
+}
+
 export interface CampaignResponse {
   id: string;
   name: string;
@@ -18,6 +22,7 @@ export interface CampaignResponse {
   audienceId: string | null;
   tagId: string | null;
   pastedRecipients: string[] | null;
+  attachment: CampaignAttachmentMeta | null;
   status: CampaignStatus;
   scheduledAt: string | null;
   createdAt: string;
@@ -32,6 +37,7 @@ export interface CreateCampaignInput {
   audienceId?: string;
   tagId?: string;
   pastedRecipients?: string[];
+  copyAttachmentFrom?: string;
 }
 
 export type UpdateCampaignInput = Partial<CreateCampaignInput>;

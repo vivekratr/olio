@@ -166,6 +166,7 @@ export function CampaignsPage() {
       closeDuplicate();
       toast("Draft created from duplicate", "success");
       router.push(`/campaigns/${created.id}`);
+      return created;
     } catch (saveError) {
       setDuplicateError(
         saveError instanceof Error
@@ -185,6 +186,7 @@ export function CampaignsPage() {
       closeDuplicate();
       toast("Campaign is sending", "success");
       router.push(`/campaigns/${sending.id}/analytics`);
+      return created;
     } catch (sendError) {
       setDuplicateError(
         sendError instanceof Error
@@ -206,6 +208,7 @@ export function CampaignsPage() {
       closeDuplicate();
       toast("Campaign scheduled", "success");
       router.push("/campaigns");
+      return created;
     } catch (scheduleError) {
       setDuplicateError(
         scheduleError instanceof Error

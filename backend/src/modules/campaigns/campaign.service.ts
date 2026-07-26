@@ -4,6 +4,12 @@ import type { Campaign } from "../../generated/prisma/client.js";
 import type { EmailProvider } from "../../infrastructure/email/email.provider.js";
 import type { CampaignQueue } from "../../infrastructure/queue/campaign.queue.js";
 import { TagService } from "../tags/tag.service.js";
+import {
+  isCampaignEditable,
+  MAX_CAMPAIGN_ATTACHMENT_BYTES,
+  parseCampaignAttachment,
+  toCampaignAttachmentMeta,
+} from "./campaign.attachment.js";
 import { CampaignRecipientRepository } from "./campaign-recipient.repository.js";
 import { CampaignRecipientResolver } from "./campaign-recipient.resolver.js";
 import { CampaignRepository } from "./campaign.repository.js";
@@ -93,6 +99,64 @@ export class CampaignService {
     }
 
     return this.toCampaignResponse(campaign);
+  }
+
+  async setCampaignAttachment(
+    accountId: string,
+    campaignId: string,
+    file: { originalname: string; buffer: Buffer; mimetype: string },
+  ): Promise<CampaignResponse> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    if (!isCampaignEditable(campaign)) {
+      throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+
+    const isPdf =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      throw new AppError("Only PDF files are allowed", 400);
+    }
+
+    if (file.buffer.byteLength > MAX_CAMPAIGN_ATTACHMENT_BYTES) {
+      throw new AppError("Attachment must be 5 MB or smaller", 400);
+    }
+
+    const updated = await this.campaignRepository.setAttachment(
+      accountId,
+      campaignId,
+      {
+        name: file.originalname,
+        content: file.buffer.toString("base64"),
+      },
+    );
+
+    if (!updated) {
+      throw new AppError(CAMPAIGN_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toCampaignResponse(updated);
+  }
+
+  async clearCampaignAttachment(
+    accountId: string,
+    campaignId: string,
+  ): Promise<CampaignResponse> {
+    const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    if (!isCampaignEditable(campaign)) {
+      throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
+    }
+
+    const updated = await this.campaignRepository.clearAttachment(
+      accountId,
+      campaignId,
+    );
+
+    if (!updated) {
+      throw new AppError(CAMPAIGN_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toCampaignResponse(updated);
   }
 
   async previewRecipientsInput(
@@ -258,6 +322,7 @@ export class CampaignService {
 
   async deliverCampaign(accountId: string, campaignId: string): Promise<void> {
     const campaign = await this.findCampaignOrThrow(accountId, campaignId);
+    const attachment = parseCampaignAttachment(campaign.attachment);
     const recipients =
       await this.campaignRecipientRepository.findPendingByCampaign(campaignId);
 
@@ -269,11 +334,15 @@ export class CampaignService {
           continue;
         }
 
-        const result = await this.emailProvider.send({
+        const sendInput = {
           to: email,
           subject: campaign.subject,
           html: campaign.bodyHtml,
-        });
+        };
+
+        const result = await this.emailProvider.send(
+          attachment ? { ...sendInput, attachment } : sendInput,
+        );
 
         await this.campaignRecipientRepository.markSent(
           recipient.id,
@@ -408,6 +477,8 @@ export class CampaignService {
   }
 
   private toCampaignResponse(campaign: Campaign): CampaignResponse {
+    const attachment = parseCampaignAttachment(campaign.attachment);
+
     return {
       id: campaign.id,
       name: campaign.name,
@@ -419,6 +490,7 @@ export class CampaignService {
       pastedRecipients: Array.isArray(campaign.pastedRecipients)
         ? (campaign.pastedRecipients as string[])
         : null,
+      attachment: toCampaignAttachmentMeta(attachment),
       status: campaign.status as CampaignResponse["status"],
       scheduledAt: campaign.scheduledAt?.toISOString() ?? null,
       createdAt: campaign.createdAt.toISOString(),

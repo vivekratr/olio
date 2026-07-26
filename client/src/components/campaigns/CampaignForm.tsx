@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/Button";
@@ -15,13 +15,13 @@ import {
   inputClassName,
   toLocalDatetimeValue,
 } from "@/lib/campaign-fields";
-import { previewCampaignRecipients } from "@/services/campaign.service";
+import { previewCampaignRecipients, removeCampaignAttachment, uploadCampaignAttachment } from "@/services/campaign.service";
 import {
   campaignDraftSchema,
   campaignFormSchema,
 } from "@/schemas/campaign.schema";
 import type { Audience } from "@/types/audience.types";
-import type { Campaign, CampaignFormValues, PreviewRecipientsResponse, RecipientMode } from "@/types/campaign.types";
+import type { Campaign, CampaignFormValues, CreateCampaignInput, PreviewRecipientsResponse, RecipientMode } from "@/types/campaign.types";
 import type { Tag } from "@/types/tag.types";
 
 type EditorTab = "compose" | "preview";
@@ -66,8 +66,12 @@ function toPreviewSrcDoc(html: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:24px;}</style></head><body>${body}</body></html>`;
 }
 
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
 interface CampaignFormProps {
   campaign?: Campaign;
+  campaignId?: string;
+  copyAttachmentFromId?: string;
   audiences: Audience[];
   tags: Tag[];
   readOnly?: boolean;
@@ -75,16 +79,19 @@ interface CampaignFormProps {
   sending?: boolean;
   scheduling?: boolean;
   apiError?: string | null;
-  onSaveDraft: (input: ReturnType<typeof formValuesToInput>) => Promise<void>;
-  onSendNow?: (input: ReturnType<typeof formValuesToInput>) => Promise<void>;
+  onAttachmentChange?: () => void;
+  onSaveDraft: (input: CreateCampaignInput) => Promise<Campaign>;
+  onSendNow?: (input: CreateCampaignInput) => Promise<Campaign>;
   onSchedule?: (
-    input: ReturnType<typeof formValuesToInput>,
+    input: CreateCampaignInput,
     scheduledAt: string,
-  ) => Promise<void>;
+  ) => Promise<Campaign>;
 }
 
 export function CampaignForm({
   campaign,
+  campaignId,
+  copyAttachmentFromId,
   audiences,
   tags,
   readOnly = false,
@@ -92,6 +99,7 @@ export function CampaignForm({
   sending = false,
   scheduling = false,
   apiError = null,
+  onAttachmentChange,
   onSaveDraft,
   onSendNow,
   onSchedule,
@@ -106,7 +114,11 @@ export function CampaignForm({
   );
   const [pastePreviewLoading, setPastePreviewLoading] = useState(false);
   const [pastePreviewError, setPastePreviewError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [attachmentLoading, setAttachmentLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scheduleDialogRef = useRef<HTMLDialogElement>(null);
+  const resolvedCampaignId = campaignId ?? campaign?.id;
 
   const {
     register,
@@ -165,7 +177,92 @@ export function CampaignForm({
 
   useEffect(() => {
     reset(campaignToFormDefaults(campaign));
+    setPendingFile(null);
   }, [campaign, reset]);
+
+  const attachmentName = pendingFile?.name ?? campaign?.attachment?.name ?? null;
+
+  const toInputOptions = (requireRecipients: boolean) => ({
+    requireRecipients,
+    copyAttachmentFromId:
+      copyAttachmentFromId && campaign?.attachment ? copyAttachmentFromId : undefined,
+  });
+
+  const flushPendingAttachment = async (saved: Campaign) => {
+    if (!pendingFile) {
+      return saved;
+    }
+
+    const updated = await uploadCampaignAttachment(saved.id, pendingFile);
+    setPendingFile(null);
+    onAttachmentChange?.();
+    return updated;
+  };
+
+  const handleAttachmentSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setActionError("Attachment must be 5 MB or smaller.");
+      return;
+    }
+
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setActionError("Only PDF files are allowed.");
+      return;
+    }
+
+    setActionError(null);
+
+    if (resolvedCampaignId) {
+      setAttachmentLoading(true);
+      try {
+        await uploadCampaignAttachment(resolvedCampaignId, file);
+        onAttachmentChange?.();
+      } catch (error) {
+        setActionError(
+          error instanceof Error ? error.message : "Could not upload attachment.",
+        );
+      } finally {
+        setAttachmentLoading(false);
+      }
+      return;
+    }
+
+    setPendingFile(file);
+  };
+
+  const handleRemoveAttachment = async () => {
+    setActionError(null);
+
+    if (pendingFile) {
+      setPendingFile(null);
+      return;
+    }
+
+    if (!resolvedCampaignId || !campaign?.attachment) {
+      return;
+    }
+
+    setAttachmentLoading(true);
+    try {
+      await removeCampaignAttachment(resolvedCampaignId);
+      onAttachmentChange?.();
+    } catch (error) {
+      setActionError(
+        error instanceof Error ? error.message : "Could not remove attachment.",
+      );
+    } finally {
+      setAttachmentLoading(false);
+    }
+  };
 
   useEffect(() => {
     const dialog = scheduleDialogRef.current;
@@ -185,7 +282,7 @@ export function CampaignForm({
 
   const runWithValues = async (
     schema: typeof campaignDraftSchema | typeof campaignFormSchema,
-    handler: (input: ReturnType<typeof formValuesToInput>) => Promise<void>,
+    handler: (input: CreateCampaignInput) => Promise<Campaign>,
     requireRecipients: boolean,
   ) => {
     setActionError(null);
@@ -199,9 +296,10 @@ export function CampaignForm({
     }
 
     try {
-      await handler(
-        formValuesToInput(parsed.data, { requireRecipients }),
+      const saved = await handler(
+        formValuesToInput(parsed.data, toInputOptions(requireRecipients)),
       );
+      await flushPendingAttachment(saved);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Something went wrong.",
@@ -213,7 +311,10 @@ export function CampaignForm({
   const handleSaveDraft = handleSubmit(async (values) => {
     setActionError(null);
     try {
-      await onSaveDraft(formValuesToInput(values));
+      const saved = await onSaveDraft(
+        formValuesToInput(values, toInputOptions(false)),
+      );
+      await flushPendingAttachment(saved);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Could not save draft.",
@@ -258,7 +359,13 @@ export function CampaignForm({
     setScheduleOpen(false);
   };
 
-  const disabled = readOnly || saving || sending || scheduling || isSubmitting;
+  const disabled =
+    readOnly ||
+    saving ||
+    sending ||
+    scheduling ||
+    isSubmitting ||
+    attachmentLoading;
   const isScheduled = campaign?.status === "scheduled";
   const showActions = !readOnly;
   const sendRecipientNote = recipientConfirmMessage(
@@ -557,6 +664,55 @@ export function CampaignForm({
           {errors.bodyHtml ? (
             <p className="text-sm text-[#e44258]">{errors.bodyHtml.message}</p>
           ) : null}
+
+          <div className="rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-[#333333]">Email attachment</p>
+                <p className="mt-1 text-xs text-[#535768]">PDF only, up to 5 MB.</p>
+              </div>
+              {!readOnly ? (
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="sr-only"
+                    disabled={disabled}
+                    onChange={handleAttachmentSelect}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {attachmentName ? "Replace PDF" : "Attach PDF"}
+                  </Button>
+                  {attachmentName ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={disabled}
+                      onClick={handleRemoveAttachment}
+                    >
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+            {attachmentName ? (
+              <p className="mt-3 text-sm text-[#333333]">
+                {attachmentName}
+                {pendingFile && !resolvedCampaignId ? (
+                  <span className="text-[#535768]"> — uploads when you save</span>
+                ) : null}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm text-[#535768]">No attachment.</p>
+            )}
+          </div>
         </section>
       </div>
 

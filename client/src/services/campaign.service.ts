@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "@/lib/api";
 import type {
   Campaign,
   CreateCampaignInput,
@@ -46,4 +46,15 @@ export function previewCampaignRecipients(
   input: PreviewRecipientsRequest,
 ): Promise<PreviewRecipientsResponse> {
   return apiPost<PreviewRecipientsResponse>("/campaigns/recipients/preview", input);
+}
+
+export function uploadCampaignAttachment(
+  id: string,
+  file: File,
+): Promise<Campaign> {
+  return apiUpload<Campaign>(`/campaigns/${id}/attachment`, file);
+}
+
+export function removeCampaignAttachment(id: string): Promise<Campaign> {
+  return apiDelete<Campaign>(`/campaigns/${id}/attachment`);
 }

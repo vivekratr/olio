@@ -1,6 +1,7 @@
 import { Prisma } from "../../generated/prisma/client.js";
 import { BaseRepository } from "../../common/database/base.repository.js";
 import type { Campaign } from "../../generated/prisma/client.js";
+import type { CampaignAttachment } from "./campaign.attachment.js";
 import type {
   CampaignStatus,
   CreateCampaignInput,
@@ -12,24 +13,35 @@ export class CampaignRepository extends BaseRepository {
     accountId: string,
     data: CreateCampaignInput,
   ): Promise<Campaign> {
+    const { copyAttachmentFrom, ...campaignData } = data;
     const createData: Prisma.CampaignUncheckedCreateInput = {
       accountId,
-      name: data.name,
-      subject: data.subject,
-      bodyHtml: data.bodyHtml,
-      recipientMode: data.recipientMode,
+      name: campaignData.name,
+      subject: campaignData.subject,
+      bodyHtml: campaignData.bodyHtml,
+      recipientMode: campaignData.recipientMode,
       status: "draft",
     };
 
-    if (data.recipientMode === "audience") {
-      createData.audienceId = data.audienceId ?? null;
-    } else if (data.recipientMode === "tag") {
-      createData.tagId = data.tagId ?? null;
-    } else if (data.pastedRecipients) {
-      createData.pastedRecipients = data.pastedRecipients;
+    if (campaignData.recipientMode === "audience") {
+      createData.audienceId = campaignData.audienceId ?? null;
+    } else if (campaignData.recipientMode === "tag") {
+      createData.tagId = campaignData.tagId ?? null;
+    } else if (campaignData.pastedRecipients) {
+      createData.pastedRecipients = campaignData.pastedRecipients;
     }
 
-    return this.prisma.campaign.create({ data: createData });
+    const campaign = await this.prisma.campaign.create({ data: createData });
+
+    if (copyAttachmentFrom) {
+      await this.copyAttachment(accountId, copyAttachmentFrom, campaign.id);
+      const withAttachment = await this.findById(accountId, campaign.id);
+      if (withAttachment) {
+        return withAttachment;
+      }
+    }
+
+    return campaign;
   }
 
   async findById(
@@ -112,6 +124,69 @@ export class CampaignRepository extends BaseRepository {
     return this.prisma.campaign.delete({
       where: { id: campaignId },
     });
+  }
+
+  async setAttachment(
+    accountId: string,
+    campaignId: string,
+    attachment: CampaignAttachment,
+  ): Promise<Campaign | null> {
+    const result = await this.prisma.campaign.updateMany({
+      where: {
+        id: campaignId,
+        accountId,
+        status: { in: ["draft", "scheduled"] },
+      },
+      data: { attachment: attachment as unknown as Prisma.InputJsonValue },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findById(accountId, campaignId);
+  }
+
+  async clearAttachment(
+    accountId: string,
+    campaignId: string,
+  ): Promise<Campaign | null> {
+    const result = await this.prisma.campaign.updateMany({
+      where: {
+        id: campaignId,
+        accountId,
+        status: { in: ["draft", "scheduled"] },
+      },
+      data: { attachment: Prisma.JsonNull },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findById(accountId, campaignId);
+  }
+
+  async copyAttachment(
+    accountId: string,
+    fromCampaignId: string,
+    toCampaignId: string,
+  ): Promise<boolean> {
+    const source = await this.findById(accountId, fromCampaignId);
+    if (!source?.attachment) {
+      return false;
+    }
+
+    const result = await this.prisma.campaign.updateMany({
+      where: {
+        id: toCampaignId,
+        accountId,
+        status: { in: ["draft", "scheduled"] },
+      },
+      data: { attachment: source.attachment as Prisma.InputJsonValue },
+    });
+
+    return result.count > 0;
   }
 
   async transitionStatus(

@@ -19,9 +19,9 @@ interface DuplicateCampaignDialogProps {
   scheduling?: boolean;
   apiError?: string | null;
   onClose: () => void;
-  onSaveDraft: (input: CreateCampaignInput) => Promise<void>;
-  onSendNow: (input: CreateCampaignInput) => Promise<void>;
-  onSchedule: (input: CreateCampaignInput, scheduledAt: string) => Promise<void>;
+  onSaveDraft: (input: CreateCampaignInput) => Promise<Campaign>;
+  onSendNow: (input: CreateCampaignInput) => Promise<Campaign>;
+  onSchedule: (input: CreateCampaignInput, scheduledAt: string) => Promise<Campaign>;
 }
 
 export function DuplicateCampaignDialog({
@@ -85,6 +85,9 @@ export function DuplicateCampaignDialog({
         <div className="mt-6" key={duplicateKey}>
           <CampaignForm
             campaign={duplicateCampaign}
+            copyAttachmentFromId={
+              source?.attachment && source.id ? source.id : undefined
+            }
             audiences={audiences}
             tags={tags}
             saving={saving}

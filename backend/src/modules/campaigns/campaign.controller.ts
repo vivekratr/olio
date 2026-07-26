@@ -1,4 +1,5 @@
 import type { Request, RequestHandler, Response } from "express";
+import { AppError } from "../../common/errors/app-error.js";
 import { successResponse } from "../../common/responses/api-response.js";
 import { asyncHandler } from "../../common/utils/async-handler.js";
 import type { AnalyticsService } from "../analytics/analytics.service.js";
@@ -88,6 +89,31 @@ export class CampaignController {
         req.body as PreviewRecipientsRequest,
       );
       successResponse(res, data, "Recipients previewed successfully");
+    },
+  );
+
+  uploadAttachment: RequestHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      if (!req.file) {
+        throw new AppError("PDF file is required", 400);
+      }
+
+      const data = await this.campaignService.setCampaignAttachment(
+        req.user.accountId,
+        req.params.id as string,
+        req.file,
+      );
+      successResponse(res, data, "Attachment uploaded successfully");
+    },
+  );
+
+  deleteAttachment: RequestHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+      const data = await this.campaignService.clearCampaignAttachment(
+        req.user.accountId,
+        req.params.id as string,
+      );
+      successResponse(res, data, "Attachment removed successfully");
     },
   );
 }

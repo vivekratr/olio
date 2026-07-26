@@ -1,5 +1,9 @@
 import { AppError } from "../../common/errors/app-error.js";
 import type { Campaign } from "../../generated/prisma/client.js";
+import {
+  parseCampaignAttachment,
+  toCampaignAttachmentMeta,
+} from "../campaigns/campaign.attachment.js";
 import { CampaignRepository } from "../campaigns/campaign.repository.js";
 import type {
   CampaignResponse,
@@ -57,6 +61,8 @@ export class AnalyticsService {
   }
 
   private toCampaignResponse(campaign: Campaign): CampaignResponse {
+    const attachment = parseCampaignAttachment(campaign.attachment);
+
     return {
       id: campaign.id,
       name: campaign.name,
@@ -68,6 +74,7 @@ export class AnalyticsService {
       pastedRecipients: Array.isArray(campaign.pastedRecipients)
         ? (campaign.pastedRecipients as string[])
         : null,
+      attachment: toCampaignAttachmentMeta(attachment),
       status: campaign.status as CampaignResponse["status"],
       scheduledAt: campaign.scheduledAt?.toISOString() ?? null,
       createdAt: campaign.createdAt.toISOString(),

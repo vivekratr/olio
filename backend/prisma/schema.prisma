@@ -115,6 +115,7 @@ model Campaign {
   status String @default("draft")
   scheduledAt DateTime? @map("scheduled_at")
   queueJobId String? @map("queue_job_id")
+  attachment Json? @map("attachment")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

@@ -21,6 +21,16 @@ export class BrevoProvider implements EmailProvider {
         to: [{ email: input.to }],
         subject: input.subject,
         htmlContent: input.html,
+        ...(input.attachment
+          ? {
+              attachment: [
+                {
+                  content: input.attachment.content,
+                  name: input.attachment.name,
+                },
+              ],
+            }
+          : {}),
       }),
     });
 

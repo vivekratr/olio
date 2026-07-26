@@ -18,6 +18,7 @@ const campaignFieldsSchema = z.object({
   audienceId: z.string().uuid().optional(),
   tagId: z.string().uuid().optional(),
   pastedRecipients: z.array(z.string().trim().min(1)).optional(),
+  copyAttachmentFrom: z.string().uuid().optional(),
 });
 
 export const createCampaignSchema = campaignFieldsSchema;

@@ -18,7 +18,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useTags } from "@/hooks/useTags";
 import { formatScheduledAt } from "@/lib/campaign-fields";
-import type { CreateCampaignInput } from "@/types/campaign.types";
+import type { Campaign, CreateCampaignInput } from "@/types/campaign.types";
 import { useToast } from "@/providers/ToastProvider";
 
 interface CampaignEditorPageProps {
@@ -61,10 +61,9 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
     ? "Create campaign"
     : campaign?.name ?? "Campaign";
 
-  const persist = async (input: CreateCampaignInput) => {
+  const persist = async (input: CreateCampaignInput): Promise<Campaign> => {
     if (isCreate) {
-      const created = await createCampaign(input);
-      return created;
+      return createCampaign(input);
     }
 
     if (!campaignId) {
@@ -82,6 +81,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
       if (isCreate) {
         router.replace(`/campaigns/${saved.id}`);
       }
+      return saved;
     } catch (error) {
       setApiError(
         error instanceof Error ? error.message : "Could not save draft.",
@@ -98,6 +98,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
       await prepareCampaignAnalyticsView(queryClient, sending);
       toast("Campaign is sending", "success");
       router.push(`/campaigns/${sending.id}/analytics`);
+      return saved;
     } catch (error) {
       setApiError(
         error instanceof Error ? error.message : "Could not send campaign.",
@@ -116,6 +117,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
       await scheduleCampaign({ id: saved.id, input: { scheduledAt } });
       toast(isScheduled ? "Campaign rescheduled" : "Campaign scheduled", "success");
       router.push("/campaigns");
+      return saved;
     } catch (error) {
       setApiError(
         error instanceof Error ? error.message : "Could not schedule campaign.",
@@ -188,6 +190,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
 
       <CampaignForm
         campaign={campaign}
+        campaignId={campaignId}
         audiences={audiences}
         tags={tags}
         readOnly={!isEditable}
@@ -195,6 +198,7 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
         sending={sending}
         scheduling={scheduling}
         apiError={apiError}
+        onAttachmentChange={() => refetch()}
         onSaveDraft={handleSaveDraft}
         onSendNow={isDraft && !isScheduled ? handleSendNow : undefined}
         onSchedule={isEditable ? handleSchedule : undefined}
