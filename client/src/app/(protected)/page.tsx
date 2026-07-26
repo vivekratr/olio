@@ -35,6 +35,12 @@ export default function Home() {
           >
             Audiences
           </Link>
+          <Link
+            href="/campaigns"
+            className="font-medium text-[#6161ff] hover:underline"
+          >
+            Campaigns
+          </Link>
         </div>
       </div>
     </PageLayout>

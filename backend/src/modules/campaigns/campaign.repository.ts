@@ -1,5 +1,6 @@
+import { Prisma } from "../../generated/prisma/client.js";
 import { BaseRepository } from "../../common/database/base.repository.js";
-import type { Campaign, Prisma } from "../../generated/prisma/client.js";
+import type { Campaign } from "../../generated/prisma/client.js";
 import type {
   CampaignStatus,
   CreateCampaignInput,
@@ -11,16 +12,24 @@ export class CampaignRepository extends BaseRepository {
     accountId: string,
     data: CreateCampaignInput,
   ): Promise<Campaign> {
-    return this.prisma.campaign.create({
-      data: {
-        accountId,
-        name: data.name,
-        subject: data.subject,
-        bodyHtml: data.bodyHtml,
-        recipientMode: data.recipientMode,
-        status: "draft",
-      },
-    });
+    const createData: Prisma.CampaignUncheckedCreateInput = {
+      accountId,
+      name: data.name,
+      subject: data.subject,
+      bodyHtml: data.bodyHtml,
+      recipientMode: data.recipientMode,
+      status: "draft",
+    };
+
+    if (data.recipientMode === "audience") {
+      createData.audienceId = data.audienceId ?? null;
+    } else if (data.recipientMode === "tag") {
+      createData.tagId = data.tagId ?? null;
+    } else if (data.pastedRecipients) {
+      createData.pastedRecipients = data.pastedRecipients;
+    }
+
+    return this.prisma.campaign.create({ data: createData });
   }
 
   async findById(
@@ -57,6 +66,26 @@ export class CampaignRepository extends BaseRepository {
     }
     if (data.recipientMode !== undefined) {
       updateData.recipientMode = data.recipientMode;
+    }
+    if (data.audienceId !== undefined) {
+      updateData.audienceId = data.audienceId;
+    }
+    if (data.tagId !== undefined) {
+      updateData.tagId = data.tagId;
+    }
+    if (data.pastedRecipients !== undefined) {
+      updateData.pastedRecipients = data.pastedRecipients;
+    }
+
+    if (data.recipientMode === "audience") {
+      updateData.tagId = null;
+      updateData.pastedRecipients = Prisma.JsonNull;
+    } else if (data.recipientMode === "tag") {
+      updateData.audienceId = null;
+      updateData.pastedRecipients = Prisma.JsonNull;
+    } else if (data.recipientMode === "paste") {
+      updateData.audienceId = null;
+      updateData.tagId = null;
     }
 
     const result = await this.prisma.campaign.updateMany({

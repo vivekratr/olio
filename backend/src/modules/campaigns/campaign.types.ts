@@ -15,6 +15,9 @@ export interface CampaignResponse {
   subject: string;
   bodyHtml: string;
   recipientMode: RecipientMode;
+  audienceId: string | null;
+  tagId: string | null;
+  pastedRecipients: string[] | null;
   status: CampaignStatus;
   scheduledAt: string | null;
   createdAt: string;
@@ -26,6 +29,9 @@ export interface CreateCampaignInput {
   subject: string;
   bodyHtml: string;
   recipientMode: RecipientMode;
+  audienceId?: string;
+  tagId?: string;
+  pastedRecipients?: string[];
 }
 
 export type UpdateCampaignInput = Partial<CreateCampaignInput>;

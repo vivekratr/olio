@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const recipientModeSchema = z.enum(["audience", "tag", "paste"]);
 
-export const createCampaignSchema = z.object({
+const campaignFieldsSchema = z.object({
   name: z
     .string()
     .trim()
@@ -15,16 +15,24 @@ export const createCampaignSchema = z.object({
     .max(200, "Subject must be at most 200 characters"),
   bodyHtml: z.string().min(1, "Body is required"),
   recipientMode: recipientModeSchema,
+  audienceId: z.string().uuid().optional(),
+  tagId: z.string().uuid().optional(),
+  pastedRecipients: z.array(z.string().trim().min(1)).optional(),
 });
 
-export const updateCampaignSchema = createCampaignSchema
+export const createCampaignSchema = campaignFieldsSchema;
+
+export const updateCampaignSchema = campaignFieldsSchema
   .partial()
   .refine(
     (data) =>
       data.name !== undefined ||
       data.subject !== undefined ||
       data.bodyHtml !== undefined ||
-      data.recipientMode !== undefined,
+      data.recipientMode !== undefined ||
+      data.audienceId !== undefined ||
+      data.tagId !== undefined ||
+      data.pastedRecipients !== undefined,
     { message: "At least one field is required" },
   );
 

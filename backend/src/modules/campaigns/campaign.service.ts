@@ -386,6 +386,11 @@ export class CampaignService {
       subject: campaign.subject,
       bodyHtml: campaign.bodyHtml,
       recipientMode: campaign.recipientMode as RecipientMode,
+      audienceId: campaign.audienceId,
+      tagId: campaign.tagId,
+      pastedRecipients: Array.isArray(campaign.pastedRecipients)
+        ? (campaign.pastedRecipients as string[])
+        : null,
       status: campaign.status as CampaignResponse["status"],
       scheduledAt: campaign.scheduledAt?.toISOString() ?? null,
       createdAt: campaign.createdAt.toISOString(),
