@@ -13,7 +13,11 @@ const envSchema = z.object({
   BREVO_API_KEY: z.string().min(1),
   BREVO_SENDER_EMAIL: z.email(),
   BREVO_SENDER_NAME: z.string().min(1),
-  BREVO_WEBHOOK_TOKEN: z.string().min(1).optional(),
+  // Docker may pass an empty string when unset; treat that as missing.
+  BREVO_WEBHOOK_TOKEN: z
+    .string()
+    .optional()
+    .transform((value) => (value?.trim() ? value.trim() : undefined)),
 });
 
 const parsed = envSchema.safeParse(process.env);
