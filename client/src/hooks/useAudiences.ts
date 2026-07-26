@@ -50,7 +50,7 @@ export function useAudiences() {
 
   return {
     audiences: query.data ?? [],
-    loading: query.isPending,
+    loading: query.isLoading,
     error: query.error ?? null,
     refetch: query.refetch,
     createAudience: createMutation.mutateAsync,

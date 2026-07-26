@@ -88,7 +88,7 @@ export function useCampaigns() {
 
   return {
     campaigns: query.data ?? [],
-    loading: query.isPending,
+    loading: query.isLoading,
     error: query.error ?? null,
     refetch: query.refetch,
     isFetching: query.isFetching,

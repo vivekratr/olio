@@ -38,7 +38,7 @@ export class ContactController {
   list: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
     const data = await this.contactService.listContacts(
       req.user.accountId,
-      req.query as unknown as ListContactsQuery,
+      req.validatedQuery as ListContactsQuery,
     );
     successResponse(res, data, "Contacts retrieved successfully");
   });

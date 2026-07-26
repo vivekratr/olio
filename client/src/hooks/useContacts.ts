@@ -22,11 +22,22 @@ import type {
 
 const CONTACTS_KEY = "contacts";
 
+function contactsQueryKey(params: ListContactsParams) {
+  return [
+    CONTACTS_KEY,
+    params.page ?? 1,
+    params.limit ?? 20,
+    params.search ?? "",
+    params.sort ?? "createdAt",
+    params.order ?? "desc",
+  ] as const;
+}
+
 export function useContacts(params: ListContactsParams) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: [CONTACTS_KEY, params],
+    queryKey: contactsQueryKey(params),
     queryFn: () => listContacts(params),
     placeholderData: (previous) => previous,
   });
@@ -93,7 +104,7 @@ export function useContacts(params: ListContactsParams) {
 
   return {
     data: query.data,
-    loading: query.isPending,
+    loading: query.isLoading,
     error: query.error ?? null,
     refetch: query.refetch,
     isFetching: query.isFetching,

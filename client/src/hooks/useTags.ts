@@ -64,7 +64,7 @@ export function useTags() {
 
   return {
     tags: query.data ?? [],
-    loading: query.isPending,
+    loading: query.isLoading,
     error: query.error ?? null,
     refetch: query.refetch,
     createTag: createMutation.mutateAsync,

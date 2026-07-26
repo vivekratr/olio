@@ -17,6 +17,12 @@ export const validate =
       return;
     }
 
+    if (source === "query") {
+      req.validatedQuery = result.data;
+      next();
+      return;
+    }
+
     req[source] = result.data;
     next();
   };

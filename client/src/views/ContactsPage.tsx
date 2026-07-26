@@ -476,7 +476,7 @@ export function ContactsPage() {
           onRetry={() => refetch()}
           retryLoading={isFetching}
         />
-      ) : loading ? (
+      ) : !data && loading ? (
         <ContactsTableSkeleton />
       ) : isEmpty ? (
         <EmptyState

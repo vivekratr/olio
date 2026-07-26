@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAudiences } from "@/hooks/useAudiences";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useContacts } from "@/hooks/useContacts";
@@ -110,7 +111,21 @@ export function GettingStarted() {
   const allDone = completedCount === steps.length;
 
   if (loading) {
-    return null;
+    return (
+      <div
+        aria-busy="true"
+        aria-label="Loading getting started steps"
+        className="rounded-[24px] border border-[#d0d4e4] bg-white p-8 shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]"
+      >
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="mt-3 h-4 w-72" />
+        <div className="mt-8 space-y-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-20 rounded-[16px]" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (allDone) {
@@ -147,6 +162,20 @@ export function GettingStarted() {
         <p className="text-sm font-medium text-[#6161ff]">
           {completedCount} of {steps.length} complete
         </p>
+      </div>
+
+      <div
+        className="mt-6 h-2 overflow-hidden rounded-full bg-[#f5f6f8]"
+        role="progressbar"
+        aria-valuenow={completedCount}
+        aria-valuemin={0}
+        aria-valuemax={steps.length}
+        aria-label="Onboarding progress"
+      >
+        <div
+          className="h-full rounded-full bg-[#6161ff] transition-[width] duration-300 motion-reduce:transition-none"
+          style={{ width: `${(completedCount / steps.length) * 100}%` }}
+        />
       </div>
 
       <ol className="mt-8 space-y-3">
