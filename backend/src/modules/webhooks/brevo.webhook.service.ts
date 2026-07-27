@@ -6,6 +6,7 @@ import {
 } from "../campaigns/campaign-recipient.repository.js";
 import { CampaignEventRepository } from "./campaign-event.repository.js";
 import {
+  isAutomatedBrevoOpen,
   mapBrevoEvent,
   type BrevoWebhookPayload,
 } from "./brevo.webhook.schema.js";
@@ -19,6 +20,10 @@ export class BrevoWebhookService {
   async handleEvent(payload: BrevoWebhookPayload): Promise<void> {
     const eventType = mapBrevoEvent(payload.event);
     if (!eventType) {
+      return;
+    }
+
+    if (eventType === "opened" && isAutomatedBrevoOpen(payload)) {
       return;
     }
 

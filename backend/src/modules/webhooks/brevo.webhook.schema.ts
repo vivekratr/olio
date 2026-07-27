@@ -4,6 +4,7 @@ export const brevoWebhookSchema = z.looseObject({
   event: z.string(),
   id: z.number(),
   "message-id": z.string(),
+  user_agent: z.string().optional(),
 });
 
 export type BrevoWebhookPayload = z.infer<typeof brevoWebhookSchema>;
@@ -22,4 +23,10 @@ const SUPPORTED_EVENTS: Record<string, string> = {
 
 export function mapBrevoEvent(event: string): string | null {
   return SUPPORTED_EVENTS[event] ?? null;
+}
+
+/** Brevo's transac-phishing-consumer scanner prefetches the tracking pixel and fires unique_opened. */
+export function isAutomatedBrevoOpen(payload: BrevoWebhookPayload): boolean {
+  const userAgent = payload.user_agent ?? "";
+  return /transac-phishing-consumer/i.test(userAgent);
 }
