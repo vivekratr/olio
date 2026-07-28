@@ -104,7 +104,7 @@ Campaign sent/delivered/opened counts only update when Brevo can POST events to 
 2. Open [Brevo → Webhooks](https://app.brevo.com/app-store/webhooks) → create an **outbound** webhook (Transactional events)
 3. **URL:** `https://<your_backend_url>/api/v1/webhooks/brevo`  
    Examples: `https://abc123.ngrok-free.app/api/v1/webhooks/brevo` (local) or `https://your-vps.example.com/api/v1/webhooks/brevo` (deployed)
-4. Enable events: **delivered**, **opened**, **hard bounce**, **soft bounce**
+4. Enable events: **delivered**, **opened**, **unique opened**, **proxy open**, **unique proxy open**, **hard bounce**, **soft bounce** (Gmail/Apple often send proxy-open events instead of plain opened)
 5. Generate a token (e.g. `openssl rand -hex 32`), set `BREVO_WEBHOOK_TOKEN` in `backend/.env`, and paste the **same** value in Brevo's webhook Token authentication field
 
 ## 6. Full Docker Compose (API + DB + Redis)

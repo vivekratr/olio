@@ -241,26 +241,46 @@ export class CampaignService {
     const campaign = await this.findCampaignOrThrow(accountId, campaignId);
     const transition = this.campaignScheduler.sendNow(campaign);
 
-    const queueJobId = await this.campaignQueue.enqueueCampaign({
-      accountId,
-      campaignId,
-    });
-
     const updated = await this.campaignRepository.transitionStatus(
       accountId,
       campaignId,
       transition.fromStatus,
       transition.toStatus,
       transition.scheduledAt,
-      queueJobId,
     );
 
     if (!updated) {
-      await this.campaignQueue.cancelJob(queueJobId);
       throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
     }
 
-    return this.toCampaignResponse(updated);
+    let queueJobId: string;
+    try {
+      queueJobId = await this.campaignQueue.enqueueCampaign({
+        accountId,
+        campaignId,
+      });
+    } catch (error) {
+      await this.campaignRepository.transitionStatus(
+        accountId,
+        campaignId,
+        "sending",
+        "draft",
+      );
+      throw error;
+    }
+
+    const withJob = await this.campaignRepository.updateQueueJobId(
+      accountId,
+      campaignId,
+      queueJobId,
+    );
+
+    if (!withJob) {
+      await this.campaignQueue.cancelJob(queueJobId);
+      throw new AppError(CAMPAIGN_NOT_FOUND_MESSAGE, 404);
+    }
+
+    return this.toCampaignResponse(withJob);
   }
 
   async prepareCampaign(
@@ -296,7 +316,7 @@ export class CampaignService {
       return;
     }
 
-    if (status !== "scheduled") {
+    if (status !== "scheduled" && status !== "draft") {
       throw new AppError(CAMPAIGN_STATE_CONFLICT_MESSAGE, 409);
     }
 

@@ -16,7 +16,12 @@ export class CampaignProcessor {
       await this.campaignService.deliverCampaign(accountId, campaignId);
       await this.campaignService.markSent(accountId, campaignId);
     } catch (error) {
-      logger.error(`Campaign job failed: ${campaignId}`, { error });
+      const detail =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Campaign job failed: ${campaignId}: ${detail}`, {
+        error,
+        accountId,
+      });
       await this.campaignService.markFailed(accountId, campaignId);
       throw error;
     }

@@ -73,6 +73,23 @@ export class CampaignRepository extends BaseRepository {
     });
   }
 
+  async updateQueueJobId(
+    accountId: string,
+    campaignId: string,
+    queueJobId: string,
+  ): Promise<Campaign | null> {
+    const result = await this.prisma.campaign.updateMany({
+      where: { id: campaignId, accountId },
+      data: { queueJobId },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findById(accountId, campaignId);
+  }
+
   async update(
     accountId: string,
     campaignId: string,
