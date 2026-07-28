@@ -384,6 +384,33 @@ export class CampaignService {
     }
   }
 
+  async reconcileScheduledJobs(): Promise<void> {
+    const campaigns = await this.campaignRepository.listScheduled();
+
+    for (const campaign of campaigns) {
+      if (!campaign.scheduledAt) {
+        continue;
+      }
+
+      if (campaign.queueJobId) {
+        const job = await this.campaignQueue.getJob(campaign.queueJobId);
+        if (job) {
+          const state = await job.getState();
+          if (state !== "completed" && state !== "failed") {
+            continue;
+          }
+        }
+      }
+
+      const queueJobId = await this.campaignQueue.enqueueCampaign(
+        { accountId: campaign.accountId, campaignId: campaign.id },
+        campaign.scheduledAt,
+      );
+      await this.campaignRepository.setQueueJobId(campaign.id, queueJobId);
+      logger.info(`Reconciled scheduled campaign: ${campaign.id}`);
+    }
+  }
+
   async markFailed(accountId: string, campaignId: string): Promise<void> {
     const campaign = await this.findCampaignOrThrow(accountId, campaignId);
     const status = campaign.status as CampaignStatus;

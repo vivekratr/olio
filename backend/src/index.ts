@@ -59,6 +59,9 @@ const campaignService = new CampaignService(
 const campaignProcessor = new CampaignProcessor(campaignService);
 
 startCampaignWorker(campaignProcessor);
+void campaignService.reconcileScheduledJobs().catch((error) => {
+  logger.error("Scheduled campaign reconciliation failed", { error });
+});
 
 app.listen(env.PORT, () => {
   logger.info(`Server running on port ${env.PORT}`);

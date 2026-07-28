@@ -60,6 +60,19 @@ export class CampaignRepository extends BaseRepository {
     });
   }
 
+  async listScheduled(): Promise<Campaign[]> {
+    return this.prisma.campaign.findMany({
+      where: { status: "scheduled", scheduledAt: { not: null } },
+    });
+  }
+
+  async setQueueJobId(campaignId: string, queueJobId: string): Promise<void> {
+    await this.prisma.campaign.updateMany({
+      where: { id: campaignId, status: "scheduled" },
+      data: { queueJobId },
+    });
+  }
+
   async update(
     accountId: string,
     campaignId: string,
