@@ -302,10 +302,12 @@ export class CampaignService {
       this.toRecipientInput(campaign),
     );
 
-    await this.campaignRecipientRepository.createMany(
-      campaignId,
-      result.matched.map((contact) => contact.id),
-    );
+    const contactIds = result.matched.map((contact) => contact.id);
+    if (contactIds.length === 0) {
+      throw new AppError("No recipients matched for this campaign", 400);
+    }
+
+    await this.campaignRecipientRepository.createMany(campaignId, contactIds);
   }
 
   async markSending(accountId: string, campaignId: string): Promise<void> {

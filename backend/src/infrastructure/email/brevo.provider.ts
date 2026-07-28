@@ -18,7 +18,7 @@ export class BrevoProvider implements EmailProvider {
           name: env.BREVO_SENDER_NAME,
           email: env.BREVO_SENDER_EMAIL,
         },
-        to: [{ email: input.to }],
+        to: [{ email: input.to, contactPixelTrackingConsent: true }],
         subject: input.subject,
         htmlContent: input.html,
         ...(input.attachment
