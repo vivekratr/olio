@@ -416,7 +416,8 @@ export class CampaignService {
         const job = await this.campaignQueue.getJob(campaign.queueJobId);
         if (job) {
           const state = await job.getState();
-          if (state !== "completed" && state !== "failed") {
+          // Only recover failed/missing jobs — completed still has a live job id.
+          if (state !== "failed") {
             continue;
           }
         }

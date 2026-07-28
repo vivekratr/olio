@@ -1,5 +1,6 @@
 import type { Job } from "bullmq";
 
+import { AppError } from "../../common/errors/app-error.js";
 import { logger } from "../../common/logger/logger.js";
 import type { CampaignSendJobData } from "../../infrastructure/queue/campaign.queue.js";
 import type { CampaignService } from "./campaign.service.js";
@@ -16,6 +17,16 @@ export class CampaignProcessor {
       await this.campaignService.deliverCampaign(accountId, campaignId);
       await this.campaignService.markSent(accountId, campaignId);
     } catch (error) {
+      if (error instanceof AppError && error.statusCode === 409) {
+        const campaign = await this.campaignService.getCampaign(
+          accountId,
+          campaignId,
+        );
+        if (campaign.status === "sent") {
+          return;
+        }
+      }
+
       const detail =
         error instanceof Error ? error.message : String(error);
       logger.error(`Campaign job failed: ${campaignId}: ${detail}`, {
