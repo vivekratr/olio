@@ -1,6 +1,7 @@
 import { BaseRepository } from "../../common/database/base.repository.js";
 import type {
   CampaignMetrics,
+  CampaignRecipientAnalytics,
   CampaignTimelineEntry,
 } from "./analytics.types.js";
 
@@ -18,6 +19,14 @@ interface TimelineRow {
   bucket: Date;
   event_type: string;
   count: number;
+}
+
+interface RecipientRow {
+  contact_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
 }
 
 export class AnalyticsRepository extends BaseRepository {
@@ -93,6 +102,34 @@ export class AnalyticsRepository extends BaseRepository {
       bucket: row.bucket.toISOString(),
       eventType: row.event_type,
       count: Number(row.count),
+    }));
+  }
+
+  async getCampaignRecipients(
+    accountId: string,
+    campaignId: string,
+  ): Promise<CampaignRecipientAnalytics[]> {
+    const rows = await this.prisma.$queryRaw<RecipientRow[]>`
+      SELECT
+        c.id AS contact_id,
+        c.name,
+        c.email,
+        c.phone,
+        cr.status
+      FROM campaign_recipients cr
+      INNER JOIN contacts c ON c.id = cr.contact_id
+      INNER JOIN campaigns camp ON camp.id = cr.campaign_id
+      WHERE cr.campaign_id = ${campaignId}::uuid
+        AND camp.account_id = ${accountId}::uuid
+      ORDER BY c.name ASC, c.email ASC NULLS LAST, c.phone ASC NULLS LAST
+    `;
+
+    return rows.map((row) => ({
+      contactId: row.contact_id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone,
+      status: row.status,
     }));
   }
 }

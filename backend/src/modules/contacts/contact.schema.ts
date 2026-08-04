@@ -41,10 +41,4 @@ export const listContactsQuerySchema = z.object({
 
 export type ListContactsQuery = z.infer<typeof listContactsQuerySchema>;
 
-export const REQUIRED_CSV_HEADERS = [
-  "name",
-  "email",
-  "phone",
-  "city",
-  "tags",
-] as const;
+export const CSV_IDENTIFIER_HEADERS = ["email", "phone"] as const;

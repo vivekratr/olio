@@ -35,4 +35,11 @@ export interface CampaignAnalyticsResponse {
     eventType: string;
     count: number;
   }>;
+  recipients: Array<{
+    contactId: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    status: string;
+  }>;
 }

@@ -22,9 +22,18 @@ export interface CampaignTimelineEntry {
   count: number;
 }
 
+export interface CampaignRecipientAnalytics {
+  contactId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
+}
+
 export interface CampaignAnalyticsResponse {
   campaign: CampaignResponse;
   metrics: CampaignMetrics;
   rates: CampaignRates;
   timeline: CampaignTimelineEntry[];
+  recipients: CampaignRecipientAnalytics[];
 }

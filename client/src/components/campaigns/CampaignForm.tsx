@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DialogHeader } from "@/components/ui/DialogHeader";
 import { Select } from "@/components/ui/Select";
+import { CampaignRecipientsTable } from "@/components/campaigns/CampaignRecipientsTable";
 import {
   campaignToFormDefaults,
   defaultScheduleValue,
@@ -82,10 +83,9 @@ interface CampaignFormProps {
   onAttachmentChange?: () => void;
   onSaveDraft: (input: CreateCampaignInput) => Promise<Campaign>;
   onSendNow?: (input: CreateCampaignInput) => Promise<Campaign>;
-  onSchedule?: (
-    input: CreateCampaignInput,
-    scheduledAt: string,
-  ) => Promise<Campaign>;
+  onSendCampaign?: (id: string) => Promise<void>;
+  onSchedule?: (input: CreateCampaignInput) => Promise<Campaign>;
+  onScheduleCampaign?: (id: string, scheduledAt: string) => Promise<void>;
 }
 
 export function CampaignForm({
@@ -102,7 +102,9 @@ export function CampaignForm({
   onAttachmentChange,
   onSaveDraft,
   onSendNow,
+  onSendCampaign,
   onSchedule,
+  onScheduleCampaign,
 }: CampaignFormProps) {
   const [tab, setTab] = useState<EditorTab>("compose");
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -116,6 +118,8 @@ export function CampaignForm({
   const [pastePreviewError, setPastePreviewError] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [attachmentLoading, setAttachmentLoading] = useState(false);
+  const [sendActionLoading, setSendActionLoading] = useState(false);
+  const [scheduleActionLoading, setScheduleActionLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scheduleDialogRef = useRef<HTMLDialogElement>(null);
   const resolvedCampaignId = campaignId ?? campaign?.id;
@@ -132,48 +136,76 @@ export function CampaignForm({
   });
 
   const recipientMode = watch("recipientMode");
+  const audienceId = watch("audienceId");
+  const tagId = watch("tagId");
   const pastedRecipients = watch("pastedRecipients");
   const bodyHtml = watch("bodyHtml");
 
   useEffect(() => {
-    if (recipientMode !== "paste") {
-      setPastePreview(null);
-      setPastePreviewError(null);
-      return;
-    }
+    let cancelled = false;
 
-    const pasted = (pastedRecipients ?? "")
-      .split(/[\n,;]+/)
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const loadPreview = async () => {
+      if (recipientMode === "audience" && !audienceId) {
+        setPastePreview(null);
+        setPastePreviewError(null);
+        return;
+      }
 
-    if (pasted.length === 0) {
-      setPastePreview(null);
-      setPastePreviewError(null);
-      return;
-    }
+      if (recipientMode === "tag" && !tagId) {
+        setPastePreview(null);
+        setPastePreviewError(null);
+        return;
+      }
 
-    setPastePreviewLoading(true);
-    const timer = window.setTimeout(async () => {
+      const pasted =
+        recipientMode === "paste"
+          ? (pastedRecipients ?? "")
+              .split(/[\n,;]+/)
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : undefined;
+
+      if (recipientMode === "paste" && (!pasted || pasted.length === 0)) {
+        setPastePreview(null);
+        setPastePreviewError(null);
+        return;
+      }
+
+      setPastePreviewLoading(true);
       try {
         const result = await previewCampaignRecipients({
-          recipientMode: "paste",
+          recipientMode,
+          audienceId: recipientMode === "audience" ? audienceId : undefined,
+          tagId: recipientMode === "tag" ? tagId : undefined,
           pasted,
         });
-        setPastePreview(result);
-        setPastePreviewError(null);
+        if (!cancelled) {
+          setPastePreview(result);
+          setPastePreviewError(null);
+        }
       } catch (error) {
-        setPastePreview(null);
-        setPastePreviewError(
-          error instanceof Error ? error.message : "Preview failed.",
-        );
+        if (!cancelled) {
+          setPastePreview(null);
+          setPastePreviewError(
+            error instanceof Error ? error.message : "Preview failed.",
+          );
+        }
       } finally {
-        setPastePreviewLoading(false);
+        if (!cancelled) {
+          setPastePreviewLoading(false);
+        }
       }
+    };
+
+    const timer = window.setTimeout(() => {
+      void loadPreview();
     }, 300);
 
-    return () => window.clearTimeout(timer);
-  }, [recipientMode, pastedRecipients]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [recipientMode, audienceId, tagId, pastedRecipients]);
 
   useEffect(() => {
     reset(campaignToFormDefaults(campaign));
@@ -193,10 +225,15 @@ export function CampaignForm({
       return saved;
     }
 
-    const updated = await uploadCampaignAttachment(saved.id, pendingFile);
-    setPendingFile(null);
-    onAttachmentChange?.();
-    return updated;
+    setAttachmentLoading(true);
+    try {
+      const updated = await uploadCampaignAttachment(saved.id, pendingFile);
+      setPendingFile(null);
+      onAttachmentChange?.();
+      return updated;
+    } finally {
+      setAttachmentLoading(false);
+    }
   };
 
   const handleAttachmentSelect = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -284,7 +321,7 @@ export function CampaignForm({
     schema: typeof campaignDraftSchema | typeof campaignFormSchema,
     handler: (input: CreateCampaignInput) => Promise<Campaign>,
     requireRecipients: boolean,
-  ) => {
+  ): Promise<Campaign> => {
     setActionError(null);
     const values = watch();
 
@@ -292,14 +329,14 @@ export function CampaignForm({
     if (!parsed.success) {
       const first = parsed.error.issues[0];
       setActionError(first?.message ?? "Please fix the highlighted fields.");
-      return;
+      throw new Error(first?.message ?? "Validation failed.");
     }
 
     try {
       const saved = await handler(
         formValuesToInput(parsed.data, toInputOptions(requireRecipients)),
       );
-      await flushPendingAttachment(saved);
+      return await flushPendingAttachment(saved);
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Something went wrong.",
@@ -323,16 +360,24 @@ export function CampaignForm({
   });
 
   const confirmSend = async () => {
-    if (!onSendNow) {
+    if (!onSendNow || !onSendCampaign) {
       return;
     }
 
-    await runWithValues(campaignFormSchema, onSendNow, true);
-    setSendOpen(false);
+    setSendActionLoading(true);
+    try {
+      const saved = await runWithValues(campaignFormSchema, onSendNow, true);
+      await onSendCampaign(saved.id);
+      setSendOpen(false);
+    } catch {
+      // runWithValues and onSendCampaign surface errors via actionError/apiError.
+    } finally {
+      setSendActionLoading(false);
+    }
   };
 
   const confirmSchedule = async () => {
-    if (!onSchedule) {
+    if (!onSchedule || !onScheduleCampaign) {
       return;
     }
 
@@ -351,12 +396,16 @@ export function CampaignForm({
       return;
     }
 
-    await runWithValues(
-      campaignFormSchema,
-      (input) => onSchedule(input, scheduledDate.toISOString()),
-      true,
-    );
-    setScheduleOpen(false);
+    setScheduleActionLoading(true);
+    try {
+      const saved = await runWithValues(campaignFormSchema, onSchedule, true);
+      await onScheduleCampaign(saved.id, scheduledDate.toISOString());
+      setScheduleOpen(false);
+    } catch {
+      // runWithValues and onScheduleCampaign surface errors via actionError/apiError.
+    } finally {
+      setScheduleActionLoading(false);
+    }
   };
 
   const disabled =
@@ -556,63 +605,54 @@ export function CampaignForm({
                     {errors.pastedRecipients.message}
                   </p>
                 ) : null}
-                <div className="mt-3 rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4">
-                  <p className="text-sm font-medium text-[#333333]">Recipient preview</p>
-                  {pastePreviewLoading ? (
-                    <p className="mt-2 text-sm text-[#535768]">Checking contacts…</p>
-                  ) : pastePreviewError ? (
-                    <p className="mt-2 text-sm text-[#e44258]">{pastePreviewError}</p>
-                  ) : pastePreview ? (
-                    <div className="mt-2 space-y-3 text-sm">
-                      <div className="space-y-1 text-[#535768]">
-                        <p>
-                          Matched contacts:{" "}
-                          <span className="font-medium text-[#333333]">
-                            {pastePreview.totalMatched}
-                          </span>
-                        </p>
-                        <p>
-                          Unmatched entries:{" "}
-                          <span className="font-medium text-[#333333]">
-                            {pastePreview.totalUnmatched}
-                          </span>
-                        </p>
-                      </div>
-                      <ul className="space-y-2">
-                        {pastePreview.matched.slice(0, 8).map((contact) => (
-                          <li key={contact.id} className="text-[#333333]">
-                            <span aria-hidden className="text-[#2a5c4e]">
-                              ✓{" "}
-                            </span>
-                            {formatMatchedContact(contact)}
-                          </li>
-                        ))}
-                        {pastePreview.matched.length > 8 ? (
-                          <li className="text-[#535768]">
-                            +{pastePreview.matched.length - 8} more matched
-                          </li>
-                        ) : null}
-                        {pastePreview.unmatched.slice(0, 8).map((value) => (
-                          <li key={value} className="text-[#e44258]">
-                            <span aria-hidden>✗ </span>
-                            {value} — {UNMATCHED_REASON}
-                          </li>
-                        ))}
-                        {pastePreview.unmatched.length > 8 ? (
-                          <li className="text-[#e44258]">
-                            +{pastePreview.unmatched.length - 8} more unmatched
-                          </li>
-                        ) : null}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-[#535768]">
-                      Paste emails or phones to preview matches.
-                    </p>
-                  )}
-                </div>
               </div>
             ) : null}
+
+            <div className="rounded-[16px] border border-[#d0d4e4] bg-[#f5f6f8] p-4">
+              <p className="text-sm font-medium text-[#333333]">Recipient preview</p>
+              {pastePreviewLoading ? (
+                <p className="mt-2 text-sm text-[#535768]">Loading contacts…</p>
+              ) : pastePreviewError ? (
+                <p className="mt-2 text-sm text-[#e44258]">{pastePreviewError}</p>
+              ) : pastePreview ? (
+                <div className="mt-3 space-y-3">
+                  <div className="space-y-1 text-sm text-[#535768]">
+                    <p>
+                      Matched contacts:{" "}
+                      <span className="font-medium text-[#333333]">
+                        {pastePreview.totalMatched}
+                      </span>
+                    </p>
+                    {recipientMode === "paste" ? (
+                      <p>
+                        Unmatched entries:{" "}
+                        <span className="font-medium text-[#333333]">
+                          {pastePreview.totalUnmatched}
+                        </span>
+                      </p>
+                    ) : null}
+                  </div>
+                  <CampaignRecipientsTable
+                    recipients={pastePreview.matched.map((contact) => ({
+                      id: contact.id,
+                      name: contact.name,
+                      email: contact.email,
+                      phone: contact.phone,
+                    }))}
+                    unmatched={recipientMode === "paste" ? pastePreview.unmatched : []}
+                    emptyMessage="No matched contacts for this selection."
+                  />
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-[#535768]">
+                  {recipientMode === "paste"
+                    ? "Paste emails or phones to preview matches."
+                    : recipientMode === "audience"
+                      ? "Select an audience to preview contacts."
+                      : "Select a tag to preview contacts."}
+                </p>
+              )}
+            </div>
           </fieldset>
         </section>
 
@@ -706,7 +746,7 @@ export function CampaignForm({
               <p className="mt-3 text-sm text-[#333333]">
                 {attachmentName}
                 {pendingFile && !resolvedCampaignId ? (
-                  <span className="text-[#535768]"> — uploads when you save</span>
+                  <span className="text-[#535768]"> — uploads when you save or send</span>
                 ) : null}
               </p>
             ) : (
@@ -765,7 +805,7 @@ export function CampaignForm({
         title="Send campaign now?"
         description={sendRecipientNote}
         confirmLabel="Send now"
-        loading={sending}
+        loading={sendActionLoading || sending}
         onConfirm={confirmSend}
         onCancel={() => setSendOpen(false)}
       />
@@ -807,7 +847,11 @@ export function CampaignForm({
           <Button type="button" variant="outline" onClick={() => setScheduleOpen(false)}>
             Cancel
           </Button>
-          <Button type="button" loading={scheduling} onClick={confirmSchedule}>
+          <Button
+            type="button"
+            loading={scheduleActionLoading || scheduling}
+            onClick={confirmSchedule}
+          >
             {isScheduled ? "Save new time" : "Schedule send"}
           </Button>
         </div>

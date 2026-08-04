@@ -165,7 +165,7 @@ export function CsvImportDialog({
         disabled={loading}
       >
         <p className="mt-2 text-sm text-[#535768]">
-          Required columns: name, email, phone, city, tags.
+          Include an email or phone column. Name, city, and tags are optional.
         </p>
       </DialogHeader>
 

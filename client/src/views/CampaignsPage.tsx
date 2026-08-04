@@ -180,13 +180,25 @@ export function CampaignsPage() {
   const handleDuplicateSendNow = async (input: CreateCampaignInput) => {
     setDuplicateError(null);
     try {
-      const created = await createCampaign(input);
-      const sending = await sendCampaign(created.id);
+      return await createCampaign(input);
+    } catch (sendError) {
+      setDuplicateError(
+        sendError instanceof Error
+          ? sendError.message
+          : "Could not save duplicate.",
+      );
+      throw sendError;
+    }
+  };
+
+  const handleDuplicateSendCampaign = async (id: string) => {
+    setDuplicateError(null);
+    try {
+      const sending = await sendCampaign(id);
       await prepareCampaignAnalyticsView(queryClient, sending);
       closeDuplicate();
       toast("Campaign is sending", "success");
       router.push(`/campaigns/${sending.id}/analytics`);
-      return created;
     } catch (sendError) {
       setDuplicateError(
         sendError instanceof Error
@@ -197,18 +209,30 @@ export function CampaignsPage() {
     }
   };
 
-  const handleDuplicateSchedule = async (
-    input: CreateCampaignInput,
+  const handleDuplicateSchedule = async (input: CreateCampaignInput) => {
+    setDuplicateError(null);
+    try {
+      return await createCampaign(input);
+    } catch (scheduleError) {
+      setDuplicateError(
+        scheduleError instanceof Error
+          ? scheduleError.message
+          : "Could not save duplicate.",
+      );
+      throw scheduleError;
+    }
+  };
+
+  const handleDuplicateScheduleCampaign = async (
+    id: string,
     scheduledAt: string,
   ) => {
     setDuplicateError(null);
     try {
-      const created = await createCampaign(input);
-      await scheduleCampaign({ id: created.id, input: { scheduledAt } });
+      await scheduleCampaign({ id, input: { scheduledAt } });
       closeDuplicate();
       toast("Campaign scheduled", "success");
       router.push("/campaigns");
-      return created;
     } catch (scheduleError) {
       setDuplicateError(
         scheduleError instanceof Error
@@ -312,7 +336,9 @@ export function CampaignsPage() {
         onClose={closeDuplicate}
         onSaveDraft={handleDuplicateSaveDraft}
         onSendNow={handleDuplicateSendNow}
+        onSendCampaign={handleDuplicateSendCampaign}
         onSchedule={handleDuplicateSchedule}
+        onScheduleCampaign={handleDuplicateScheduleCampaign}
       />
 
       <ConfirmDialog

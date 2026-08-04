@@ -39,9 +39,10 @@ export class AnalyticsService {
       throw new AppError(CAMPAIGN_NOT_FOUND_MESSAGE, 404);
     }
 
-    const [metrics, timeline] = await Promise.all([
+    const [metrics, timeline, recipients] = await Promise.all([
       this.analyticsRepository.getCampaignMetrics(accountId, campaignId),
       this.analyticsRepository.getCampaignTimeline(accountId, campaignId),
+      this.analyticsRepository.getCampaignRecipients(accountId, campaignId),
     ]);
 
     return {
@@ -49,6 +50,7 @@ export class AnalyticsService {
       metrics,
       rates: this.toRates(metrics),
       timeline,
+      recipients,
     };
   }
 

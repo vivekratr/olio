@@ -94,11 +94,25 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
     setApiError(null);
     try {
       const saved = await persist(input);
-      const sending = await sendCampaign(saved.id);
+      if (isCreate) {
+        router.replace(`/campaigns/${saved.id}`);
+      }
+      return saved;
+    } catch (error) {
+      setApiError(
+        error instanceof Error ? error.message : "Could not save campaign.",
+      );
+      throw error;
+    }
+  };
+
+  const handleSendCampaign = async (id: string) => {
+    setApiError(null);
+    try {
+      const sending = await sendCampaign(id);
       await prepareCampaignAnalyticsView(queryClient, sending);
       toast("Campaign is sending", "success");
       router.push(`/campaigns/${sending.id}/analytics`);
-      return saved;
     } catch (error) {
       setApiError(
         error instanceof Error ? error.message : "Could not send campaign.",
@@ -107,17 +121,28 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
     }
   };
 
-  const handleSchedule = async (
-    input: CreateCampaignInput,
-    scheduledAt: string,
-  ) => {
+  const handleSchedule = async (input: CreateCampaignInput) => {
     setApiError(null);
     try {
       const saved = await persist(input);
-      await scheduleCampaign({ id: saved.id, input: { scheduledAt } });
+      if (isCreate) {
+        router.replace(`/campaigns/${saved.id}`);
+      }
+      return saved;
+    } catch (error) {
+      setApiError(
+        error instanceof Error ? error.message : "Could not save campaign.",
+      );
+      throw error;
+    }
+  };
+
+  const handleScheduleCampaign = async (id: string, scheduledAt: string) => {
+    setApiError(null);
+    try {
+      await scheduleCampaign({ id, input: { scheduledAt } });
       toast(isScheduled ? "Campaign rescheduled" : "Campaign scheduled", "success");
       router.push("/campaigns");
-      return saved;
     } catch (error) {
       setApiError(
         error instanceof Error ? error.message : "Could not schedule campaign.",
@@ -201,7 +226,9 @@ export function CampaignEditorPage({ campaignId }: CampaignEditorPageProps) {
         onAttachmentChange={() => refetch()}
         onSaveDraft={handleSaveDraft}
         onSendNow={isDraft && !isScheduled ? handleSendNow : undefined}
+        onSendCampaign={isDraft && !isScheduled ? handleSendCampaign : undefined}
         onSchedule={isEditable ? handleSchedule : undefined}
+        onScheduleCampaign={isEditable ? handleScheduleCampaign : undefined}
       />
     </PageLayout>
   );

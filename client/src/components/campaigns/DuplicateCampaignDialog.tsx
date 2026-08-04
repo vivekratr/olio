@@ -21,7 +21,9 @@ interface DuplicateCampaignDialogProps {
   onClose: () => void;
   onSaveDraft: (input: CreateCampaignInput) => Promise<Campaign>;
   onSendNow: (input: CreateCampaignInput) => Promise<Campaign>;
-  onSchedule: (input: CreateCampaignInput, scheduledAt: string) => Promise<Campaign>;
+  onSendCampaign: (id: string) => Promise<void>;
+  onSchedule: (input: CreateCampaignInput) => Promise<Campaign>;
+  onScheduleCampaign: (id: string, scheduledAt: string) => Promise<void>;
 }
 
 export function DuplicateCampaignDialog({
@@ -36,7 +38,9 @@ export function DuplicateCampaignDialog({
   onClose,
   onSaveDraft,
   onSendNow,
+  onSendCampaign,
   onSchedule,
+  onScheduleCampaign,
 }: DuplicateCampaignDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [duplicateKey, setDuplicateKey] = useState(0);
@@ -96,7 +100,9 @@ export function DuplicateCampaignDialog({
             apiError={apiError}
             onSaveDraft={onSaveDraft}
             onSendNow={onSendNow}
+            onSendCampaign={onSendCampaign}
             onSchedule={onSchedule}
+            onScheduleCampaign={onScheduleCampaign}
           />
         </div>
       ) : null}

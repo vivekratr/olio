@@ -1,7 +1,7 @@
 import { parse } from "csv-parse";
 import { Readable } from "node:stream";
 import { AppError } from "../../common/errors/app-error.js";
-import { REQUIRED_CSV_HEADERS } from "./contact.schema.js";
+import { CSV_IDENTIFIER_HEADERS } from "./contact.schema.js";
 
 export interface ParsedCsvRow {
   rowNumber: number;
@@ -29,7 +29,7 @@ export class CsvService {
         columns: (headers: string[]) => {
           this.validateHeaders(headers);
           headersValidated = true;
-          return headers.map((header) => header.trim());
+          return headers.map((header) => header.trim().toLowerCase());
         },
         skip_empty_lines: true,
         trim: false,
@@ -81,11 +81,12 @@ export class CsvService {
 
   private validateHeaders(headers: string[]): void {
     const normalized = headers.map((header) => header.trim().toLowerCase());
+    const hasIdentifier = CSV_IDENTIFIER_HEADERS.some((header) =>
+      normalized.includes(header),
+    );
 
-    for (const required of REQUIRED_CSV_HEADERS) {
-      if (!normalized.includes(required)) {
-        throw new AppError(`Missing required CSV header: ${required}`, 400);
-      }
+    if (!hasIdentifier) {
+      throw new AppError("CSV must include an email or phone column", 400);
     }
   }
 
