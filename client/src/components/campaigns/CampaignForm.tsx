@@ -27,16 +27,6 @@ import type { Tag } from "@/types/tag.types";
 
 type EditorTab = "compose" | "preview";
 
-const UNMATCHED_REASON =
-  "Contact not found. This address will not receive the campaign.";
-
-function formatMatchedContact(
-  contact: PreviewRecipientsResponse["matched"][number],
-): string {
-  const handle = contact.email || contact.phone || contact.id;
-  return contact.name ? `${contact.name} <${handle}>` : handle;
-}
-
 function recipientConfirmMessage(
   mode: RecipientMode,
   preview: PreviewRecipientsResponse | null,
