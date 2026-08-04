@@ -5,6 +5,7 @@ import { memo, useMemo } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageLayout } from "@/components/ui/PageLayout";
+import { CampaignRecipientsTable } from "@/components/campaigns/CampaignRecipientsTable";
 import { useCampaign } from "@/hooks/useCampaigns";
 import { useCampaignAnalytics } from "@/hooks/useCampaignAnalytics";
 import { useToast } from "@/providers/ToastProvider";
@@ -132,6 +133,7 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
 
   const metrics = data?.metrics ?? EMPTY_METRICS;
   const rates = data?.rates ?? EMPTY_RATES;
+  const recipients = data?.recipients ?? [];
   const status = data?.campaign.status ?? cachedCampaign?.status;
   const title = data?.campaign.name ?? cachedCampaign?.name ?? "Campaign analytics";
 
@@ -231,6 +233,25 @@ export function CampaignAnalyticsPage({ campaignId }: CampaignAnalyticsPageProps
                 tint={stat.tint}
               />
             ))}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="mb-4 text-sm font-medium uppercase tracking-[0.12em] text-[#535768]">
+            Recipients
+          </h2>
+          <div className="rounded-[24px] border border-[#d0d4e4] bg-white p-6 shadow-[rgba(205,208,223,0.4)_0px_2px_48px_0px]">
+            <CampaignRecipientsTable
+              recipients={recipients.map((recipient) => ({
+                id: recipient.contactId,
+                name: recipient.name,
+                email: recipient.email,
+                phone: recipient.phone,
+                status: recipient.status,
+              }))}
+              showStatus
+              emptyMessage="Recipient details will appear here once the campaign starts sending."
+            />
           </div>
         </div>
       </div>
